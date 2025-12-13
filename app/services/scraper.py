@@ -9,9 +9,26 @@ from bs4 import BeautifulSoup
 class ProductScraper:
     @staticmethod
     def _detect_brand(url: str) -> str:
-        if "zara.com" in url:
-            return "Zara"
-        return "Unknown"
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            domain = parsed.netloc
+            parts = domain.split('.')
+            
+            # Common subdomains to ignore
+            ignore_parts = {'www', 'www2', 'shop', 'store', 'm', 'tr', 'com', 'org', 'net'}
+            
+            # Find the first part that is NOT in the ignore list and is NOT a TLD (short heuristic)
+            # Actually, the brand is usually the first "main" word. 
+            # Let's try to remove known prefixes.
+            while parts and parts[0] in {'www', 'www2', 'shop', 'store', 'm'}:
+                parts.pop(0)
+            
+            if parts:
+                return parts[0].capitalize()
+            return "Unknown"
+        except:
+            return "Unknown"
 
     @staticmethod
     def _clean_text(text: Optional[str]) -> str:

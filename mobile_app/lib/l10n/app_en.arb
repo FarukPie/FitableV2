@@ -1,0 +1,17 @@
+{
+    "appTitle": "Fitable",
+    "welcomeBack": "Welcome Back",
+    "emailLabel": "Email",
+    "emailError": "Please enter email",
+    "passwordLabel": "Password",
+    "passwordError": "Please enter password",
+    "loginButton": "Login",
+    "registerLink": "Don't have an account? Register",
+    "myClosetTooltip": "My Closet",
+    "analyzingTitle": "Analyzing Product Details...",
+    "analyzingSubtitle": "Our AI is finding your perfect fit.",
+    "homeTitle": "Find Your Perfect Size",
+    "homeSubtitle": "Paste a Zara product link below to get an instant size recommendation based on your body profile.",
+    "urlHint": "Paste product URL here...",
+    "analyzeButton": "Analyze Now"
+}

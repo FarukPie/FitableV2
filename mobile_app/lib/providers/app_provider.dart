@@ -13,17 +13,25 @@ class AppProvider with ChangeNotifier {
   String? _error;
   RecommendationResult? _result;
   User? _user;
-  
+  Locale _locale = const Locale('en'); // Default to English
+
   bool get isLoading => _isLoading;
   String? get error => _error;
   RecommendationResult? get result => _result;
   User? get user => _user;
+  Locale get locale => _locale;
   bool get isAuthenticated => _user != null;
   String? get userId => _user?.id;
 
   void clearResult() {
     _result = null;
     _error = null;
+    notifyListeners();
+  }
+
+  void setLocale(Locale locale) {
+    if (_locale == locale) return;
+    _locale = locale;
     notifyListeners();
   }
 

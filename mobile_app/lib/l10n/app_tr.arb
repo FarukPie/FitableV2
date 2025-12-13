@@ -1,0 +1,17 @@
+{
+    "appTitle": "Fitable",
+    "welcomeBack": "Tekrar Hoşgeldiniz",
+    "emailLabel": "E-posta",
+    "emailError": "Lütfen e-posta giriniz",
+    "passwordLabel": "Şifre",
+    "passwordError": "Lütfen şifre giriniz",
+    "loginButton": "Giriş Yap",
+    "registerLink": "Hesabınız yok mu? Kaydolun",
+    "myClosetTooltip": "Dolabım",
+    "analyzingTitle": "Ürün Detayları Analiz Ediliyor...",
+    "analyzingSubtitle": "Yapay zekamız en uygun bedeni buluyor.",
+    "homeTitle": "Mükemmel Bedeninizi Bulun",
+    "homeSubtitle": "Vücut profilinize göre anında beden önerisi almak için Zara ürün linkini aşağıya yapıştırın.",
+    "urlHint": "Ürün URL'sini buraya yapıştırın...",
+    "analyzeButton": "Analiz Et"
+}

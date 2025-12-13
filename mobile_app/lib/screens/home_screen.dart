@@ -6,6 +6,7 @@ import '../providers/app_provider.dart';
 import 'closet_screen.dart';
 import 'measure_form_screen.dart';
 import 'result_screen.dart';
+import 'package:size_recommendation_app/l10n/app_localizations.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,13 +29,14 @@ class _HomeScreenState extends State<HomeScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         // Clear result first to prevent loops, then push
         provider.clearResult(); 
+        _urlController.clear(); // Clear the text field
         Navigator.push(context, MaterialPageRoute(builder: (_) => ResultScreen(result: result, productUrl: url)));
       });
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Fitable"),
+        title: Text(AppLocalizations.of(context)!.appTitle),
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Image.network("https://cdn-icons-png.flaticon.com/512/3309/3309995.png", color: Colors.white), // Logo placeholder
@@ -42,7 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.checkroom_rounded),
-            tooltip: "My Closet",
+            tooltip: AppLocalizations.of(context)!.myClosetTooltip,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ClosetScreen()),
@@ -88,18 +90,18 @@ class _HomeScreenState extends State<HomeScreen> {
              errorBuilder: (context, error, stack) => const CircularProgressIndicator(),
            ),
            const SizedBox(height: 32),
-           Text(
-             "Analyzing Product Details...",
-             style: GoogleFonts.outfit(
+            Text(
+              AppLocalizations.of(context)!.analyzingTitle,
+              style: GoogleFonts.outfit(
                fontSize: 20, 
                fontWeight: FontWeight.w600,
                color: Colors.white70
              ),
            ),
            const SizedBox(height: 8),
-           const Text(
-             "Our AI is finding your perfect fit.",
-             style: TextStyle(color: Colors.grey),
+            Text(
+              AppLocalizations.of(context)!.analyzingSubtitle,
+              style: const TextStyle(color: Colors.grey),
            ),
          ],
        ),
@@ -111,14 +113,14 @@ class _HomeScreenState extends State<HomeScreen> {
       key: const ValueKey("Input"),
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
-          "Find Your Perfect Size",
-          style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+        Text(
+          AppLocalizations.of(context)!.homeTitle,
+          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: -0.5),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
-        const Text(
-          "Paste a Zara product link below to get an instant size recommendation based on your body profile.",
+        Text(
+          AppLocalizations.of(context)!.homeSubtitle,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
         ),
@@ -137,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
             controller: _urlController,
             style: const TextStyle(fontSize: 16),
             decoration: InputDecoration(
-              hintText: "Paste product URL here...",
+              hintText: AppLocalizations.of(context)!.urlHint,
               prefixIcon: Icon(Icons.link, color: Theme.of(context).primaryColor),
               filled: true,
               fillColor: const Color(0xFF1E1E1E),
@@ -166,10 +168,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
+              children: [
                 Icon(Icons.auto_awesome, size: 24),
                 SizedBox(width: 12),
-                Text("Analyze Now", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(width: 12),
+                Text(AppLocalizations.of(context)!.analyzeButton, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ],
             ),
           ),

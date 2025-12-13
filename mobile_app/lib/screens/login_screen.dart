@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:size_recommendation_app/l10n/app_localizations.dart';
 import '../providers/app_provider.dart';
 import 'signup_screen.dart';
 
@@ -56,39 +57,60 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.all(24.0),
           child: Form(
             key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            child: Stack(
               children: [
-                Text(
-                  'Welcome Back',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton(
+                        onPressed: () => Provider.of<AppProvider>(context, listen: false).setLocale(const Locale('en')),
+                        child: Text("🇬🇧", style: TextStyle(fontSize: 24, color: Localizations.localeOf(context).languageCode == 'en' ? Colors.white : Colors.grey)),
                       ),
-                  textAlign: TextAlign.center,
+                      TextButton(
+                        onPressed: () => Provider.of<AppProvider>(context, listen: false).setLocale(const Locale('tr')),
+                        child: Text("🇹🇷", style: TextStyle(fontSize: 24, color: Localizations.localeOf(context).languageCode == 'tr' ? Colors.white : Colors.grey)),
+                      ),
+                    ],
+                  ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 60.0), // Space for switcher
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context)!.welcomeBack,
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
                 const SizedBox(height: 32),
                 TextFormField(
                   controller: _emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: Icon(Icons.email_outlined),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.emailLabel,
+                    prefixIcon: const Icon(Icons.email_outlined),
                   ),
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) =>
-                      value == null || value.isEmpty ? 'Please enter email' : null,
+                      value == null || value.isEmpty ? AppLocalizations.of(context)!.emailError : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    prefixIcon: Icon(Icons.lock_outline),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(context)!.passwordLabel,
+                    prefixIcon: const Icon(Icons.lock_outline),
                   ),
                   obscureText: true,
                   validator: (value) =>
-                      value == null || value.isEmpty ? 'Please enter password' : null,
+                      value == null || value.isEmpty ? AppLocalizations.of(context)!.passwordError : null,
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
@@ -98,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Login'),
+                      : Text(AppLocalizations.of(context)!.loginButton),
                 ),
                 const SizedBox(height: 16),
                 TextButton(
@@ -108,10 +130,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       MaterialPageRoute(builder: (_) => const SignupScreen()),
                     );
                   },
-                  child: const Text('Don\'t have an account? Register'),
+                  child: Text(AppLocalizations.of(context)!.registerLink),
                 ),
               ],
             ),
+          ),
+        ],
+      ),
           ),
         ),
       ),

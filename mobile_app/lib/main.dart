@@ -6,6 +6,8 @@ import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 
 import 'package:animations/animations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:size_recommendation_app/l10n/app_localizations.dart';
 
 void main() {
   runApp(const MyApp());
@@ -20,8 +22,21 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AppProvider()),
       ],
-      child: MaterialApp(
-        title: 'Fitable V2',
+      child: Consumer<AppProvider>(
+        builder: (context, provider, child) {
+          return MaterialApp(
+            title: 'Fitable V2',
+            locale: provider.locale,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('en'), // English
+              Locale('tr'), // Turkish
+            ],
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,
@@ -89,20 +104,22 @@ class MyApp extends StatelessWidget {
           ),
         ),
         home: Consumer<AppProvider>(
-          builder: (context, auth, _) {
-            // Using a simple cross-fade for auth state change
-            return PageTransitionSwitcher(
-              transitionBuilder: (child, animation, secondaryAnimation) {
-                return FadeThroughTransition(
-                  animation: animation,
-                  secondaryAnimation: secondaryAnimation,
-                  child: child,
+              builder: (context, auth, _) {
+                // Using a simple cross-fade for auth state change
+                return PageTransitionSwitcher(
+                  transitionBuilder: (child, animation, secondaryAnimation) {
+                    return FadeThroughTransition(
+                      animation: animation,
+                      secondaryAnimation: secondaryAnimation,
+                      child: child,
+                    );
+                  },
+                  child: auth.isAuthenticated ? const HomeScreen() : const LoginScreen(),
                 );
               },
-              child: auth.isAuthenticated ? const HomeScreen() : const LoginScreen(),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
