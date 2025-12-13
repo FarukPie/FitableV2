@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/history_item.dart';
+import 'package:size_recommendation_app/l10n/app_localizations.dart';
 
 class ClosetScreen extends StatefulWidget {
   const ClosetScreen({super.key});
@@ -22,7 +23,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("My Closet")),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.myClosetTitle)),
       body: FutureBuilder<List<HistoryItem>>(
         future: _historyFuture,
         builder: (context, snapshot) {
@@ -31,7 +32,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
           } else if (snapshot.hasError) {
             return Center(child: Text("Error: ${snapshot.error}"));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text("Your closet is empty."));
+            return Center(child: Text(AppLocalizations.of(context)!.closetEmpty));
           }
 
           final history = snapshot.data!;
@@ -74,12 +75,12 @@ class _ClosetScreenState extends State<ClosetScreen> {
                             Text(item.brand, style: TextStyle(color: Colors.grey[600])),
                             const SizedBox(height: 4),
                             Text(
-                              "Size: ${item.recommendedSize}",
+                              "${AppLocalizations.of(context)!.sizeLabel}: ${item.recommendedSize}",
                               style: const TextStyle(
                                   fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 16),
                             ),
                             Text(
-                              "Score: ${(item.confidenceScore * 100).toStringAsFixed(1)}%",
+                              "${AppLocalizations.of(context)!.scoreLabel}: ${(item.confidenceScore * 100).toStringAsFixed(1)}%",
                               style: const TextStyle(fontSize: 12, color: Colors.green),
                             ),
                           ],
@@ -93,18 +94,18 @@ class _ClosetScreenState extends State<ClosetScreen> {
                           final confirm = await showDialog<bool>(
                             context: context,
                             builder: (ctx) => AlertDialog(
-                              title: const Text("Remove Item"),
-                              content: const Text(
-                                  "Are you sure you want to remove this item from your closet?"),
+                              title: Text(AppLocalizations.of(context)!.removeItemTitle),
+                              content: Text(
+                                  AppLocalizations.of(context)!.removeItemConfirm),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.pop(ctx, false),
-                                  child: const Text("Cancel"),
+                                  child: Text(AppLocalizations.of(context)!.cancelButton),
                                 ),
                                 TextButton(
                                   onPressed: () => Navigator.pop(ctx, true),
-                                  child: const Text("Remove",
-                                      style: TextStyle(color: Colors.red)),
+                                  child: Text(AppLocalizations.of(context)!.removeButton,
+                                      style: const TextStyle(color: Colors.red)),
                                 ),
                               ],
                             ),
@@ -121,11 +122,11 @@ class _ClosetScreenState extends State<ClosetScreen> {
                                         .fetchHistory();
                               });
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Item removed.")),
+                                SnackBar(content: Text(AppLocalizations.of(context)!.itemRemoved)),
                               );
                             } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text("Failed to remove: $e")),
+                                SnackBar(content: Text("${AppLocalizations.of(context)!.removeFailed}$e")),
                               );
                             }
                           }

@@ -1,6 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, EmailStr
-from app.core.config import supabase
+from app.core.config import supabase, settings, supabase_admin as admin_client, supabase_anon
+
+# Use the centralized admin client from config
+# Use the centralized admin client from config
+supabase_admin = admin_client or supabase
 
 router = APIRouter(
     prefix="/auth",
@@ -19,23 +23,24 @@ class UserLogin(BaseModel):
 @router.post("/signup")
 async def signup(user: UserRegister):
     try:
-        # Supabase Auth Signup
-        response = supabase.auth.sign_up({
+        # Use Supabase Admin API to create user with auto-confirmation
+        params = {
             "email": user.email,
             "password": user.password,
-            "options": {
-                "data": {
-                    "username": user.username
-                }
+            "email_confirm": True,
+            "user_metadata": {
+                "username": user.username
             }
-        })
+        }
         
-        if not response.user:
-             # In some configs, if email confirmation is on, user is created but session is null.
-             # If error occurred, supabase-py usually raises GotrueError, but let's be safe.
-             pass
-
-        return {"status": "success", "message": "User registered successfully. Please check your email if confirmation is required.", "user": {"id": response.user.id, "email": response.user.email}}
+        # Check if we are running with service role key (we should be)
+        # Attempt to use admin.create_user via dedicated admin client
+        print(f"DEBUG: Attempting to create user {user.email} with admin privileges")
+        response = supabase_admin.auth.admin.create_user(params)
+        
+        print(f"DEBUG: Create User Response: {response}")
+        
+        return {"status": "success", "message": "User registered and confirmed. You can now login.", "user": {"id": response.user.id, "email": response.user.email}}
 
     except Exception as e:
         print(f"Signup Error: {e}")
@@ -45,7 +50,8 @@ async def signup(user: UserRegister):
 @router.post("/login")
 async def login(user: UserLogin):
     try:
-        response = supabase.auth.sign_in_with_password({
+        # Use Anon Client for standard password login
+        response = supabase_anon.auth.sign_in_with_password({
             "email": user.email,
             "password": user.password
         })

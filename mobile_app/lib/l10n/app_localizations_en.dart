@@ -53,4 +53,144 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get analyzeButton => 'Analyze Now';
+
+  @override
+  String get myMeasurementsTitle => 'My Measurements';
+
+  @override
+  String get measureWelcome =>
+      'Welcome! Please enter your measurements to get started.';
+
+  @override
+  String get personalDetails => 'Personal Details';
+
+  @override
+  String get bodyMeasurements => 'Body Measurements';
+
+  @override
+  String get genderMale => 'Male';
+
+  @override
+  String get genderFemale => 'Female';
+
+  @override
+  String get heightLabel => 'Height (cm)';
+
+  @override
+  String get weightLabel => 'Weight (kg)';
+
+  @override
+  String get chestLabel => 'Chest Circumference (cm)';
+
+  @override
+  String get waistLabel => 'Waist Circumference (cm)';
+
+  @override
+  String get hipsLabel => 'Hips (cm)';
+
+  @override
+  String get shoulderLabel => 'Shoulder Circumference (cm)';
+
+  @override
+  String get legLengthLabel => 'Leg Length (cm)';
+
+  @override
+  String get footLengthLabel => 'Foot Length (cm)';
+
+  @override
+  String get completeSetup => 'Complete Setup';
+
+  @override
+  String get updateProfile => 'Update Profile';
+
+  @override
+  String get measurementsSaved => 'Measurements Saved!';
+
+  @override
+  String get myClosetTitle => 'My Closet';
+
+  @override
+  String get closetEmpty => 'Your closet is empty.';
+
+  @override
+  String get sizeLabel => 'Size';
+
+  @override
+  String get scoreLabel => 'Score';
+
+  @override
+  String get removeItemTitle => 'Remove Item';
+
+  @override
+  String get removeItemConfirm =>
+      'Are you sure you want to remove this item from your closet?';
+
+  @override
+  String get cancelButton => 'Cancel';
+
+  @override
+  String get removeButton => 'Remove';
+
+  @override
+  String get itemRemoved => 'Item removed.';
+
+  @override
+  String get removeFailed => 'Failed to remove: ';
+
+  @override
+  String get requiredError => 'This field is required';
+
+  @override
+  String get recommendationTitle => 'Recommendation';
+
+  @override
+  String get recommendedSizeLabel => 'Recommended Size';
+
+  @override
+  String get confidenceLabel => 'Confidence';
+
+  @override
+  String get discardButton => 'Discard';
+
+  @override
+  String get addToClosetButton => 'Add to Closet';
+
+  @override
+  String get addedToClosetMessage => 'Added to Closet!';
+
+  @override
+  String get errorMessage => 'Error';
+
+  @override
+  String get howToMeasureTitle => 'How to Measure';
+
+  @override
+  String get shoulderMeasureGuide =>
+      'Measure from the tip of one shoulder bone to the other across your back.';
+
+  @override
+  String get waistMeasureGuide =>
+      'Measure around your natural waistline, just above your hips.';
+
+  @override
+  String get legLengthMeasureGuide =>
+      'Measure from the top of your inner thigh down to your ankle.';
+
+  @override
+  String get footLengthMeasureGuide =>
+      'Measure from your heel to the tip of your longest toe.';
+
+  @override
+  String get handSpanMode => 'No Tape? (Use Hand Span)';
+
+  @override
+  String handSpanInfo(Object value) {
+    return 'Based on height, 1 span ≈ $value cm';
+  }
+
+  @override
+  String get spansSuffix => 'spans';
+
+  @override
+  String get enterHeightFirst => 'Enter height to enable hand span mode';
 }

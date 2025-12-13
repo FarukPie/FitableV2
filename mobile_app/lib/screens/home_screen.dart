@@ -37,10 +37,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.appTitle),
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Image.network("https://cdn-icons-png.flaticon.com/512/3309/3309995.png", color: Colors.white), // Logo placeholder
-        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.checkroom_rounded),

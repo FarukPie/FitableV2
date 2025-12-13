@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/recommendation_result.dart';
+import 'package:size_recommendation_app/l10n/app_localizations.dart';
 
 class ResultScreen extends StatelessWidget {
   final RecommendationResult result;
@@ -15,7 +16,7 @@ class ResultScreen extends StatelessWidget {
 
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Recommendation")),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.recommendationTitle)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -60,7 +61,7 @@ class ResultScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const Text("Recommended Size", style: TextStyle(fontSize: 16)),
+                  Text(AppLocalizations.of(context)!.recommendedSizeLabel, style: const TextStyle(fontSize: 16)),
                   const SizedBox(height: 10),
                   Text(
                     result.recommendedSize,
@@ -72,7 +73,7 @@ class ResultScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    "Confidence: ${(result.confidenceScore * 100).toStringAsFixed(0)}%",
+                    "${AppLocalizations.of(context)!.confidenceLabel}: ${(result.confidenceScore * 100).toStringAsFixed(0)}%",
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
@@ -135,7 +136,7 @@ class ResultScreen extends StatelessWidget {
                       Navigator.pop(context); // Discard and go back
                     },
                     icon: const Icon(Icons.delete_outline, color: Colors.red),
-                    label: const Text("Çöpe At", style: TextStyle(color: Colors.red)),
+                    label: Text(AppLocalizations.of(context)!.discardButton, style: const TextStyle(color: Colors.red)),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.red),
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -152,18 +153,18 @@ class ResultScreen extends StatelessWidget {
                             .addToCloset(result, productUrl);
                         
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Added to Closet!")),
+                          SnackBar(content: Text(AppLocalizations.of(context)!.addedToClosetMessage)),
                         );
                         // Optional: Navigate to Closet or Home?
                         // User said "discard throws back", didn't specify for add. 
                         // I'll stay on screen or go back. Let's go home for better flow.
                         Navigator.pop(context); 
                       } catch (e) {
-                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("${AppLocalizations.of(context)!.errorMessage}: $e")));
                       }
                     },
                     icon: const Icon(Icons.checkroom),
-                    label: const Text("Dolabıma Koy"),
+                    label: Text(AppLocalizations.of(context)!.addToClosetButton),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).primaryColor,
                       foregroundColor: Colors.white,

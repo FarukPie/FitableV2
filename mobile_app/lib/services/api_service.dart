@@ -116,18 +116,7 @@ class ApiService {
         final data = jsonResponse['data'];
         if (data == null) return null;
         
-        // Ensure gender is valid ('male' or 'female') coming from DB?
-        // It comes as string. UserMeasurement.fromJson needs implementation or manual parsing.
-        // Let's rely on manual parsing if fromJson is missing or just parse it here.
-        // UserMeasurement model doesn't have fromJson shown in my previous view.
-        return UserMeasurement(
-          height: (data['height'] as num).toDouble(),
-          weight: (data['weight'] as num).toDouble(),
-          chest: (data['chest'] as num).toDouble(),
-          waist: (data['waist'] as num).toDouble(),
-          hips: (data['hips'] as num).toDouble(),
-          gender: data['gender'] ?? 'male',
-        );
+        return UserMeasurement.fromJson(data);
       } else {
         throw Exception('Failed to load measurements');
       }

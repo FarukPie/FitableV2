@@ -13,12 +13,14 @@ class AppProvider with ChangeNotifier {
   String? _error;
   RecommendationResult? _result;
   User? _user;
+  bool _hasMeasurements = false;
   Locale _locale = const Locale('en'); // Default to English
 
   bool get isLoading => _isLoading;
   String? get error => _error;
   RecommendationResult? get result => _result;
   User? get user => _user;
+  bool get hasMeasurements => _hasMeasurements;
   Locale get locale => _locale;
   bool get isAuthenticated => _user != null;
   String? get userId => _user?.id;
@@ -42,6 +44,9 @@ class AppProvider with ChangeNotifier {
 
     try {
       _user = await _apiService.login(email, password);
+      // Check if user has measurements
+      final measurements = await _apiService.getMeasurements(_user!.id);
+      _hasMeasurements = measurements != null;
     } catch (e) {
       _error = e.toString();
       rethrow;
@@ -60,6 +65,8 @@ class AppProvider with ChangeNotifier {
       await _apiService.register(email, password, username);
       // Optional: Auto-login after register, or let user login.
       // For now, let's just return and let UI handle it.
+      // If we auto-login or if the UI redirects to login which then logs in:
+      _hasMeasurements = false; // New user definitely has no measurements
     } catch (e) {
       _error = e.toString();
       rethrow;
@@ -103,6 +110,7 @@ class AppProvider with ChangeNotifier {
 
     try {
       await _apiService.updateMeasurements(_user!.id, measurements);
+      _hasMeasurements = true;
       print("Saved measurements for ${_user!.id}: ${measurements.toJson()}");
     } catch (e) {
       _error = e.toString();
@@ -120,6 +128,7 @@ class AppProvider with ChangeNotifier {
 
     try {
       final measurements = await _apiService.getMeasurements(_user!.id);
+      _hasMeasurements = measurements != null;
       return measurements;
     } catch (e) {
       _error = e.toString();

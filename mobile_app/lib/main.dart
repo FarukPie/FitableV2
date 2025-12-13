@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'providers/app_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/measure_form_screen.dart';
 
 import 'package:animations/animations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -114,7 +115,17 @@ class MyApp extends StatelessWidget {
                       child: child,
                     );
                   },
-                  child: auth.isAuthenticated ? const HomeScreen() : const LoginScreen(),
+                  child: Builder(
+                    builder: (context) {
+                      if (auth.isAuthenticated) {
+                        if (!auth.hasMeasurements) {
+                          return const MeasureFormScreen(isInitialSetup: true); // Force data entry
+                        }
+                        return const HomeScreen();
+                      }
+                      return const LoginScreen();
+                    },
+                  ),
                 );
               },
             ),
@@ -122,5 +133,5 @@ class MyApp extends StatelessWidget {
         },
       ),
     );
+    }
   }
-}
