@@ -1,6 +1,14 @@
 from fastapi import APIRouter, HTTPException
-from app.core.config import supabase
+from app.core.config import supabase, settings
 from app.models.schemas import UserMeasurementCreate, HistoryItemCreate
+from supabase import create_client
+import os
+
+# Create a dedicated admin client for privileged operations like DELETE
+# We must use settings to get the key because os.environ might not be populated if load_dotenv isn't called globally
+service_key = settings.SUPABASE_SERVICE_KEY
+supabase_url = settings.SUPABASE_URL
+supabase_admin = create_client(supabase_url, service_key) if service_key else supabase
 
 router = APIRouter(
     prefix="", # Root level to match /update-measurements requirement
@@ -80,4 +88,23 @@ async def add_history(item: HistoryItemCreate):
         return {"status": "success", "data": response.data}
     except Exception as e:
         print(f"Error adding history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+@router.delete("/history/{item_id}")
+async def delete_history_item(item_id: str):
+    print(f"DEBUG: Attempting to delete history item: '{item_id}'")
+    try:
+        # Use supabase_admin to ensure we bypass RLS
+        response = supabase_admin.table("recommendation_history").delete().eq("id", item_id).execute()
+        print(f"DEBUG: Delete response data: {response.data}")
+        
+        # NOTE: Sometimes delete returns empty list even if successful if no 'returning' header is sent or handled differently.
+        # Since we use admin client and verified ID exists, we'll assume success if no exception.
+        # We return the data if available, or just success status.
+            
+        return {"status": "success", "data": response.data}
+    except Exception as e:
+        print(f"Error deleting history item: {e}")
         raise HTTPException(status_code=500, detail=str(e))

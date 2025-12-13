@@ -1,5 +1,4 @@
 import os
-import asyncio
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
@@ -11,11 +10,16 @@ supabase: Client = create_client(url, key)
 
 if __name__ == "__main__":
     try:
-        user_id = "340ec1de-84b3-4cd4-a2ba-4f72e82a4e19"
-        print(f"Checking rows for user: {user_id}")
-        response = supabase.table("user_measurements").select("*").eq("user_id", user_id).execute()
-        print(f"Found {len(response.data)} rows.")
-        for row in response.data:
-            print(row)
+        print("--- Inspecting 'recommendation_history' ---")
+        # Fetch one row to see columns and ID type
+        response = supabase.table("recommendation_history").select("*").limit(1).execute()
+        if response.data:
+            sample = response.data[0]
+            print(f"Columns: {list(sample.keys())}")
+            print(f"Sample Row: {sample}")
+            print(f"ID Type: {type(sample['id'])}")
+        else:
+            print("Table is empty or no access.")
+            
     except Exception as e:
         print(f"Error: {e}")

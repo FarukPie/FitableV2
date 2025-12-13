@@ -17,5 +17,10 @@ def get_settings():
 # Initialize Supabase Client
 settings = get_settings()
 # Prefer Service Key if available to bypass RLS, otherwise fallback to Anon Key
-key_to_use = settings.SUPABASE_SERVICE_KEY if settings.SUPABASE_SERVICE_KEY else settings.SUPABASE_KEY
+if settings.SUPABASE_SERVICE_KEY:
+    print("DEBUG: Using SUPABASE_SERVICE_KEY for backend operations.")
+    key_to_use = settings.SUPABASE_SERVICE_KEY
+else:
+    print("WARNING: Using SUPABASE_KEY (Anon). RLS may block deletion.")
+    key_to_use = settings.SUPABASE_KEY
 supabase: Client = create_client(settings.SUPABASE_URL, key_to_use)

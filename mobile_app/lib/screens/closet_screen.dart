@@ -85,6 +85,52 @@ class _ClosetScreenState extends State<ClosetScreen> {
                           ],
                         ),
                       ),
+
+                      // Delete Button
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text("Remove Item"),
+                              content: const Text(
+                                  "Are you sure you want to remove this item from your closet?"),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: const Text("Cancel"),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: const Text("Remove",
+                                      style: TextStyle(color: Colors.red)),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true) {
+                            print("DEBUG: User confirmed delete for item ID: ${item.id}");
+                            try {
+                              await Provider.of<AppProvider>(context, listen: false)
+                                  .removeFromCloset(item.id);
+                              setState(() {
+                                _historyFuture =
+                                    Provider.of<AppProvider>(context, listen: false)
+                                        .fetchHistory();
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Item removed.")),
+                              );
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text("Failed to remove: $e")),
+                              );
+                            }
+                          }
+                        },
+                      ),
                     ],
                   ),
                 ),

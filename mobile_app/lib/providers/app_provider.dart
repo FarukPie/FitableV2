@@ -153,4 +153,16 @@ class AppProvider with ChangeNotifier {
       return [];
     }
   }
+
+  Future<void> removeFromCloset(String itemId) async {
+    if (!isAuthenticated) return;
+
+    try {
+      await _apiService.deleteHistoryItem(itemId);
+      notifyListeners(); // Notify listeners if any other part depends on it
+    } catch (e) {
+      print("Error removing form closet provider: $e");
+      rethrow;
+    }
+  }
 }

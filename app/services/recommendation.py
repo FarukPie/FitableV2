@@ -1,5 +1,6 @@
 from typing import Dict, List, Optional, Any
 from supabase import Client
+from app.data import zara_sizes
 
 class SizeRecommender:
     def __init__(self, supabase_client: Client):
@@ -56,13 +57,6 @@ class SizeRecommender:
         Fetches size catalog for the brand and category.
         """
         try:
-            # Category normalization if needed (e.g., "shirt" -> "top")
-            # For now assuming simple "top", "bottom" or exact match from DB
-            # We might need a mapper here. Let's try "top" and "bottom" generic.
-            
-            # Simple heuristic mapping based on product category if passed, 
-            # but for now we look for generic "top" or "bottom" catalogs.
-            
             response = self.supabase.table("size_catalogs").select("*") \
                 .eq("brand_id", brand_id) \
                 .eq("category", category) \
@@ -75,16 +69,37 @@ class SizeRecommender:
     def _infer_category(self, product_data: Dict) -> str:
         """
         Infers 'top' or 'bottom' based on product name/desc.
+        Also detects if it's a 'shoe' or 'accessory' (ignored properly).
         """
         text = (product_data.get("product_name", "") + " " + product_data.get("description", "")).lower()
         
-        tops = ["shirt", "t-shirt", "top", "blouse", "sweater", "jacket", "coat", "hoodie", "kazak", "gömlek", "tişört"]
+        tops = ["shirt", "t-shirt", "top", "blouse", "sweater", "jacket", "coat", "hoodie", "kazak", "gömlek", "tişört", "dress", "elbise"]
         bottoms = ["pant", "jeans", "trousers", "skirt", "short", "legging", "pantolon", "etek", "şort"]
         
         for kw in bottoms:
             if kw in text:
                 return "bottom"
         return "top" # Default to top
+
+    def _identify_zara_chart(self, product_data: Dict, category: str) -> List[Dict[str, Any]]:
+        """
+        Selects the correct hardcoded Zara chart based on product metadata.
+        """
+        text = (product_data.get("product_name", "") + " " + product_data.get("description", "") + " " + str(product_data.get("gender", ""))).lower()
+        
+        # Check for Kids
+        if any(x in text for x in ["kid", "child", "boy", "girl", "bebek", "çocuk", "baby", "kız", "erkek çocuk", "kız çocuk"]):
+             return zara_sizes.ZARA_KIDS
+        
+        # Check for Men
+        # Note: "erkek" might appear in "erkek çocuk", so we check kids first.
+        if any(x in text for x in ["man", "men", "erkek"]):
+            if category == "bottom": 
+                return zara_sizes.ZARA_MEN_BOTTOMS
+            return zara_sizes.ZARA_MEN_TOPS
+            
+        # Default to Women
+        return zara_sizes.ZARA_WOMEN_BOTTOMS if category == "bottom" else zara_sizes.ZARA_WOMEN_TOPS
 
     def get_recommendation(self, user_id: str, product_data: Dict) -> Dict[str, Any]:
         print(f"--- Getting Recommendation for User: {user_id} ---")
@@ -97,19 +112,26 @@ class SizeRecommender:
         brand_name = product_data.get("brand", "Unknown")
         print(f"DEBUG: Product Brand: {brand_name}")
         
-        brand_id = self._normalize_brand(brand_name)
-        if not brand_id:
-            print(f"DEBUG: Brand '{brand_name}' not found in DB.")
-            return {"error": f"Brand '{brand_name}' not found in database size charts."}
-        print(f"DEBUG: Found Brand ID: {brand_id}")
-
+        is_zara = "zara" in brand_name.lower()
+        size_chart = []
         category = self._infer_category(product_data)
-        print(f"DEBUG: Inferred Category: {category}")
         
-        size_chart = self._get_size_chart(brand_id, category)
+        if is_zara:
+            print("DEBUG: Detected Zara product. Using static Zara charts.")
+            size_chart = self._identify_zara_chart(product_data, category)
+        else:
+            brand_id = self._normalize_brand(brand_name)
+            if not brand_id:
+                print(f"DEBUG: Brand '{brand_name}' not found in DB.")
+                return {"error": f"Brand '{brand_name}' not found in database size charts."}
+            print(f"DEBUG: Found Brand ID: {brand_id}")
+            print(f"DEBUG: Inferred Category: {category}")
+            size_chart = self._get_size_chart(brand_id, category)
+
         if not size_chart:
-            print(f"DEBUG: No size chart found for Brand ID {brand_id} and Category {category}")
-            return {"error": f"No size chart found for {brand_name} - {category}"}
+            print(f"DEBUG: No size chart found for {brand_name} - {category}")
+            return {"error": f"No size chart found for {brand_name}"}
+            
         print(f"DEBUG: Fetched Size Chart with {len(size_chart)} entries.")
 
         best_match = None
@@ -117,14 +139,18 @@ class SizeRecommender:
         fit_message = ""
         warnings = []
 
-        check_chest = category == "top"
-        check_waist_hips = category == "bottom"
+        # Determine what to check
+        # If it has height data (Kids), we prioritize height
+        check_height = any("min_height" in s for s in size_chart)
+        check_chest = not check_height and category == "top"
+        check_waist_hips = not check_height and category == "bottom"
 
         u_chest = user_measurements.get("chest")
         u_waist = user_measurements.get("waist")
         u_hips = user_measurements.get("hips")
+        u_height = user_measurements.get("height") # Assumed key
         
-        print(f"DEBUG: Matching against measurements - Chest: {u_chest}, Waist: {u_waist}, Hips: {u_hips}")
+        print(f"DEBUG: Matching against - Height: {u_height}, Chest: {u_chest}, Waist: {u_waist}, Hips: {u_hips}")
 
         for size in size_chart:
             score = 0
@@ -133,6 +159,19 @@ class SizeRecommender:
             # Debugging individual size checking
             current_size_label = size.get("size_label", "Unknown")
             
+            # --- Height Check (Kids) ---
+            if check_height and u_height and size.get("min_height") is not None:
+                min_h = size["min_height"]
+                max_h = size["max_height"]
+                # Strict height check for kids usually
+                if min_h <= u_height <= max_h:
+                    score += 1.0
+                elif u_height < min_h and (min_h - u_height) < 5: # Close enough (5cm)
+                    score += 0.5
+                # If much taller, no match.
+                matches += 1
+
+            # --- Chest Check ---
             if check_chest and u_chest and size.get("min_chest") is not None:
                 min_c = size["min_chest"]
                 max_c = size["max_chest"]
@@ -144,6 +183,7 @@ class SizeRecommender:
                     score += 0.5
                 matches += 1
 
+            # --- Waist/Hips Check ---
             if check_waist_hips:
                 if u_waist and size.get("min_waist") is not None:
                     min_w = size["min_waist"]
@@ -166,7 +206,7 @@ class SizeRecommender:
             else:
                 final_score = 0
             
-            print(f"DEBUG: Size {current_size_label} Score: {final_score}")
+            # print(f"DEBUG: Size {current_size_label} Score: {final_score}")
 
             if final_score > highest_score:
                 highest_score = final_score

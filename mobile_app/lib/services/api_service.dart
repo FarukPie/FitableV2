@@ -182,5 +182,19 @@ class ApiService {
       rethrow;
     }
   }
+
+  Future<void> deleteHistoryItem(String itemId) async {
+    final url = Uri.parse('$baseUrl/history/$itemId');
+    try {
+      final response = await http.delete(url);
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to delete item: ${response.body}');
+      }
+    } catch (e) {
+      print("Error deleting history item: $e");
+      rethrow;
+    }
+  }
 }
 
