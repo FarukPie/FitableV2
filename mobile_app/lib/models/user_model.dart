@@ -1,11 +1,13 @@
 class User {
   final String id;
   final String email;
+  final String gender;
   final String? accessToken;
 
   User({
     required this.id,
     required this.email,
+    required this.gender,
     this.accessToken,
   });
 
@@ -26,6 +28,7 @@ class User {
     return User(
       id: userObj['id'],
       email: userObj['email'],
+      gender: userObj['user_metadata']?['gender'] ?? 'male', // Fallback to male if missing, or handle null
       accessToken: json['access_token'],
     );
   }

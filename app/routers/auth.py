@@ -15,6 +15,9 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     username: str | None = None
+    full_name: str
+    gender: str
+    age: int
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -29,7 +32,10 @@ async def signup(user: UserRegister):
             "password": user.password,
             "email_confirm": True,
             "user_metadata": {
-                "username": user.username
+                "username": user.username,
+                "full_name": user.full_name,
+                "gender": user.gender,
+                "age": user.age
             }
         }
         

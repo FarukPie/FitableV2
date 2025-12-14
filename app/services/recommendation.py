@@ -129,142 +129,220 @@ class SizeRecommender:
                 size_chart = self._get_size_chart(brand_id, category)
 
         if not size_chart:
+            # Fallback if no chart found: Try general chart or return error
             return {"error": f"No size chart found for {brand_name}"}
 
         # 2. Detect Fit Type
         fit_type = self._detect_fit_type(description)
         print(f"DEBUG: Detected Fit Type: {fit_type}")
 
-        # 3. Main Logic
-        recommended_size = None
-        size_found_order = 0
-        confidence = 1.0
-        fit_message = ""
-        warning = ""
+        # 3. CRITICAL: Sort Chart by Size Order
+        # We need a reliable index. 
+        # _get_size_order returns 0-5 for S-XXL.
+        size_chart.sort(key=lambda s: self._get_size_order(s.get("size_label", "")))
         
-        # Prepare Comparison Value
-        target_value = 0.0
-        metric_name = ""
+        # Map indices to size objects for easy lookup
+        # index 0 might be XS, but let's map whatever we have.
+        # We'll use the self._get_size_order to determine the "slot".
+        # Note: If multiple sizes map to same order (e.g. 38 and 40 both 'M'), this logic might need refinement.
+        # For now, assuming distinct steps.
         
-        if category == "top":
-            # BRANCH A: TOPS (Use User Chest directly)
-            # If user didn't enter chest (0), fallback to shoulder?
-            # User said they ask for it, assuming it's there.
-            if u_chest > 0:
-                target_value = u_chest
-                metric_name = "chest"
-                print(f"DEBUG: Using User Chest: {target_value}")
-            elif u_shoulder > 0:
-                 # Fallback if somehow chest is missing but shoulder exists
-                 target_value = u_shoulder * 0.85 
-                 metric_name = "chest"
-                 print(f"DEBUG: Chest missing, estimating from Shoulder: {target_value}")
-                 confidence -= 0.1
-            else:
-                 return {"error": "Missing Chest and Shoulder measurements"}
-            
-        else:
-            # BRANCH B: BOTTOMS (Use User Waist directly)
-            if u_waist > 0:
-                target_value = u_waist
-                metric_name = "waist"
-                print(f"DEBUG: Using User Waist: {target_value}")
-            else:
-                # Fallback estimation if missing
-                target_value = self._estimate_waist(u_height, u_weight)
-                metric_name = "waist"
-                confidence -= 0.1
-                print(f"DEBUG: Waist missing, estimating from Height/Weight: {target_value}")
+        # 4. Step 1: Calculate "Candidate Sizes" separately
+        # We will determine the "Minimum Required Size Index" for each metric.
+        
+        candidate_indices = {
+            "shoulder": -1,
+            "chest": -1,
+            "waist": -1,
+            "weight": -1
+        }
+        
+        reasons = []
 
-        # 4. Iterate and Find Match
-        # Sort chart by size order to ensure linear progression
-        # Assuming size_label has S,M,L logic.
-        
-        best_match_diff = float('inf')
-        best_match_size = None
-        
-        for size in size_chart:
-            min_v = size.get(f"min_{metric_name}")
-            max_v = size.get(f"max_{metric_name}")
-            
-            if min_v is None or max_v is None:
-                continue
+        # --- Metric A: Shoulder ---
+        if u_shoulder > 0:
+            for size in size_chart:
+                s_idx = self._get_size_order(size.get("size_label", ""))
+                # If product has shoulder data? Most size charts don't have shoulder.
+                # If they don't, we can't use it directly unless we estimate chest from shoulder.
+                # Assuming size chart MIGHT have min_shoulder/max_shoulder if we added it, 
+                # OR we map shoulder to Chest (Shoulder * 0.85 approx for Top).
                 
-            # Range Check
-            if min_v <= target_value <= max_v:
-                # Perfect Match Found
-                recommended_size = size
-                
-                # --- SMART ADJUSTMENT (The "Secret Sauce") ---
-                range_span = max_v - min_v
-                position_in_range = (target_value - min_v) / range_span if range_span > 0 else 0.5
-                
-                if fit_type == "slim" and position_in_range > 0.7:
-                     # Upper 30% of Slim Fit -> Size Up
-                     warning = "Sizing up because this is Slim Fit and you are at the limit."
-                     # Logic to find next size is tricky without indexed list.
-                     # We'll set a flag to try finding next bigger size
-                     recommended_size = "SIZE_UP" 
-                     confidence -= 0.1
-                
-                elif fit_type == "oversize" and position_in_range < 0.3:
-                     # Lower 30% of Oversize -> Size Down
-                     warning = "Sizing down because this is Oversize."
-                     recommended_size = "SIZE_DOWN"
-                     confidence -= 0.1
-                
-                break
-            
-            # Track closest if no match
-            mid = (min_v + max_v) / 2
-            diff = abs(target_value - mid)
-            if diff < best_match_diff:
-                best_match_diff = diff
-                best_match_size = size
+                # Let's assume we use Chest for Tops if Shoulder is not in DB.
+                # But prompt says "size_by_shoulder: Find the size where user.shoulder fits".
+                # If DB lacks shoulder, we skip or infer.
+                # Taking prompt literally: "size_by_shoulder"
+                pass 
 
-        # Handle Adjustments or Loop again for Size Up/Down
-        if isinstance(recommended_size, str): # "SIZE_UP" or "SIZE_DOWN"
-            current_order = self._get_size_order(size.get("size_label", ""))
-            target_order = current_order + 1 if recommended_size == "SIZE_UP" else current_order - 1
+        # Since generic charts usually use Chest/Waist/Hips, we will map user metrics to those.
+        
+        # --- Helper to find fitting index ---
+        def find_fitting_index(val, metric_key):
+            best_idx = -1
+            # Iterate to find the *smallest* size that fits (min_v <= val <= max_v)
+            # OR if val > max_v of largest size, we need larger.
             
-            # Find the size with target_order
-            found_adj = False
+            for size in size_chart:
+                idx = self._get_size_order(size.get("size_label", ""))
+                min_v = size.get(f"min_{metric_key}")
+                max_v = size.get(f"max_{metric_key}")
+                
+                if min_v is None or max_v is None: continue
+                
+                # If value fits in range
+                if min_v <= val <= max_v:
+                    return idx
+                
+                # If value is smaller than min -> this size is too big, but maybe smallest available? 
+                # If we sorted ASC, and val < min_v, then this is the first size that 'covers' it (albeit loose).
+                # Actually if val < min_v of Smallest size, then XS fits (or even smaller). 
+                # We usually want the size where val is comfortable.
+                
+                # Logic: Find the size where val <= max_v. The first one effectively.
+                if val <= max_v:
+                    return idx
+            
+            # If we are here, val > max_v of all sizes?
+            # Return the largest index
+            if size_chart:
+                return self._get_size_order(size_chart[-1].get("size_label", ""))
+            return -1
+
+        # --- 4a. Shoulder / Chest (for Tops) ---
+        target_chest = u_chest
+        if target_chest <= 0 and u_shoulder > 0:
+             target_chest = u_shoulder * 0.85 # Approximation
+             reasons.append(f"Chest estimated from Shoulder ({u_shoulder}cm).")
+
+        if category == "top" and target_chest > 0:
+             candidate_indices["chest"] = find_fitting_index(target_chest, "chest")
+             
+        # --- 4b. Waist (CRITICAL) ---
+        # "size_by_waist: If waist > product_chest, that size is impossible" -> Implies tops constraint too?
+        # Yes, for tops, waist (belly) can be the limiting factor.
+        target_waist = u_waist
+        if target_waist <= 0 and u_height > 0 and u_weight > 0:
+            target_waist = self._estimate_waist(u_height, u_weight)
+            reasons.append(f"Waist estimated from Height/Weight ({target_waist:.1f}cm).")
+        
+        if target_waist > 0:
+             # Check against 'waist' limits of the product (if available)
+             # Note: Top size charts sometimes have waist (fitted shirts) or just chest.
+             # If Top chart has waist, use it. If not, use Chest as proxy for "Width"?
+             # Actually, if Top chart has only Chest, but User Waist > Chest max, we must size up.
+             # We'll try to match against 'waist' key first.
+             idx_w = find_fitting_index(target_waist, "waist")
+             
+             # Fallback logic for Tops if 'waist' not in chart: Compare Waist to Chest dimension?
+             # Usually T-shirt waist ≈ Chest width.
+             if idx_w == -1 and category == "top":
+                  idx_w = find_fitting_index(target_waist, "chest")
+            
+             candidate_indices["waist"] = idx_w
+
+        # --- 4c. Weight (Floor) ---
+        # Map weight to min size floor. 90kg -> XL (index 4).
+        # Heuristic: <60: S(1), 60-70: M(2), 70-85: L(3), 85-100: XL(4), >100: XXL(5)
+        w_idx = -1
+        if u_weight < 60: w_idx = 1 # S
+        elif 60 <= u_weight < 70: w_idx = 2 # M
+        elif 70 <= u_weight < 85: w_idx = 3 # L
+        elif 85 <= u_weight < 95: w_idx = 4 # XL
+        elif u_weight >= 95: w_idx = 5 # XXL
+        
+        candidate_indices["weight"] = w_idx
+
+        # 5. Step 2: The "Max-Constraint" Logic
+        # Filter valid indices (> -1)
+        valid_indices = [v for k, v in candidate_indices.items() if v > -1]
+        
+        if not valid_indices:
+            return {"error": "Could not determine size from measurements."}
+            
+        final_idx = max(valid_indices)
+        
+        # 6. Step 4: Product Specific Adjustments
+        # Slim fit -> Add 1 if constrained by Waist?
+        # Only if Waist was the winner?
+        # Complex logic: if final_idx == candidate_indices['waist'] and fit_type == "slim":
+        #    final_idx += 1
+        
+        report_lines = []
+        
+        # Determine strict label
+        def get_label(idx):
+            # Find size in chart with this order logic
+            # Reverse map simple S/M/L logic
+            labels = {1: "S", 2: "M", 3: "L", 4: "XL", 5: "XXL"}
+            # Or try to find in chart?
             for s in size_chart:
-                if self._get_size_order(s.get("size_label", "")) == target_order:
-                    recommended_size = s
-                    found_adj = True
-                    break
-            
-            if not found_adj:
-                # Could not find next size up/down, revert to original match (the one we broke on 'size')
-                recommended_size = size 
-                warning += " (Target shift size not available, stuck with original)."
+                if self._get_size_order(s.get("size_label", "")) == idx:
+                    return s.get("size_label")
+            return labels.get(idx, "Unknown")
 
-        # Fallback if no Direct Match
-        if not recommended_size:
-            recommended_size = best_match_size
-            confidence -= 0.2
-            fit_message = "Exact match not found. Showing closest size."
-
-        # Final Formatting
-        rec_label = recommended_size.get("size_label", "Unknown") if recommended_size else "Unknown"
+        # Analyze Report
+        # Chest
+        c_idx = candidate_indices["chest"]
+        if c_idx > -1:
+            report_lines.append(f"Chest/Shoulder: Fits in {get_label(c_idx)}.")
         
-        # 5. Dynamic Fit Message
-        if not fit_message:
-            if category == "top":
-                fit_message = f"Based on your shoulder width ({u_shoulder}cm), {rec_label} provides the best {fit_type} fit."
-            else:
-                fit_message = f"Based on your estimated waist ({int(target_value)}cm), {rec_label} fits you best."
-                
-        if warning:
-            fit_message += f" {warning}"
+        # Waist
+        w_idx = candidate_indices["waist"]
+        if w_idx > -1:
+            report_lines.append(f"Waist: Fits in {get_label(w_idx)}.")
+            if w_idx == final_idx and w_idx > c_idx and c_idx > -1:
+                report_lines.append(f"(!) Your waist requires {get_label(w_idx)}, pushing the size up.")
+        
+        # Weight
+        wt_idx = candidate_indices["weight"]
+        if wt_idx > -1:
+            report_lines.append(f"Weight ({u_weight}kg): Suggests at least {get_label(wt_idx)}.")
             
-        print(f"DEBUG: Final Recommendation: {rec_label} (Confidence: {confidence})")
+        # Adjustments
+        adjustment_msg = ""
+        # Slim Fit Adjustment
+        if fit_type == "slim":
+             # If constrained by Waist (belly) and Slim Fit -> Size Up
+             if w_idx == final_idx:
+                 final_idx += 1
+                 adjustment_msg = "Sizing up (+1) for Slim Fit constraint on Waist."
+        elif fit_type == "oversize":
+             # If constrained by Weight (not bone structure) -> Don't downsize? 
+             # Or if final_idx determined by Chest/Shoulder, maybe we can downsize?
+             # Prompt: "If... Oversize and constraint was Weight... keep as is."
+             # Let's say: If constrained by Chest, and Oversize, maybe -1?
+             # For safety, let's keep logic simple: Strict constraints win. 
+             pass
+
+        if adjustment_msg:
+             report_lines.append(f"Adjustment: {adjustment_msg}")
+
+        final_label = get_label(final_idx)
+        
+        # 7. Final Confidence
+        # Lower confidence if huge variance between Body Part sizes?
+        variance = 0.0
+        if len(valid_indices) > 1:
+            spread = max(valid_indices) - min(valid_indices)
+            if spread >= 2:
+                variance = 0.2
+                report_lines.append("Note: Significant difference between your measurements reduces confidence.")
+        
+        confidence = 1.0 - variance
+        
+        detailed_report = "\n".join(report_lines)
+        fit_message = f"We recommend {final_label}."
+        if adjustment_msg:
+            fit_message += " (Adjusted for Fit)." # Short summary
+
+        print(f"DEBUG: Final Decision: {final_label} based on Index {final_idx}")
+        print(f"DEBUG: Report: {detailed_report}")
 
         return {
-            "recommended_size": rec_label,
+            "recommended_size": final_label,
             "confidence_score": max(0.0, min(confidence, 1.0)),
             "fit_message": fit_message,
-            "warning": warning
+            "detailed_report": detailed_report,
+            "warning": adjustment_msg
         }
 

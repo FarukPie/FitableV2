@@ -85,7 +85,7 @@ class ApiService {
     }
   }
 
-  Future<void> register(String email, String password, String username) async {
+  Future<void> register(String email, String password, String username, String fullName, String gender, int age) async {
     final url = Uri.parse('$baseUrl/auth/signup');
     try {
       final response = await http.post(
@@ -95,6 +95,9 @@ class ApiService {
           'email': email,
           'password': password,
           'username': username,
+          'full_name': fullName,
+          'gender': gender,
+          'age': age,
         }),
       );
 

@@ -23,7 +23,6 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
   final _shoulderController = TextEditingController();
   final _legLengthController = TextEditingController();
   final _footLengthController = TextEditingController();
-  String _gender = 'male';
 
   // Animation State
   double _buttonScale = 1.0;
@@ -83,7 +82,6 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
         _shoulderController.text = measurements.shoulder.toString();
         _legLengthController.text = measurements.legLength.toString();
         _footLengthController.text = measurements.footLength.toString();
-        _gender = measurements.gender;
       });
     }
   }
@@ -123,7 +121,6 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       children: [
-                        _buildGenderSelector(),
                         const Divider(height: 30, color: Colors.grey),
                         Row(
                           children: [
@@ -311,49 +308,7 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
     );
   }
 
-  Widget _buildGenderSelector() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildGenderOption(AppLocalizations.of(context)!.genderMale, 'male', Icons.man),
-        _buildGenderOption(AppLocalizations.of(context)!.genderFemale, 'female', Icons.woman),
-      ],
-    );
-  }
 
-  Widget _buildGenderOption(String label, String value, IconData icon) {
-    final isSelected = _gender == value;
-    final color = isSelected ? Theme.of(context).primaryColor : Colors.grey[600];
-    
-    return GestureDetector(
-      onTap: () {
-        setState(() => _gender = value);
-        HapticFeedback.selectionClick();
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? color!.withOpacity(0.2) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color!, width: isSelected ? 2 : 1),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   // Helper to convert span to cm
   double _convertVal(String text) {
@@ -379,7 +334,7 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
         hips: _hipsController.text.isNotEmpty ? double.parse(_hipsController.text) : 0.0,
         legLength: _convertVal(_legLengthController.text),
         footLength: _convertVal(_footLengthController.text),
-        gender: _gender,
+        gender: Provider.of<AppProvider>(context, listen: false).user!.gender,
       );
 
       Provider.of<AppProvider>(context, listen: false)

@@ -56,13 +56,13 @@ class AppProvider with ChangeNotifier {
     }
   }
 
-  Future<void> register(String email, String password, String username) async {
+  Future<void> register(String email, String password, String username, String fullName, String gender, int age) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      await _apiService.register(email, password, username);
+      await _apiService.register(email, password, username, fullName, gender, age);
       // Optional: Auto-login after register, or let user login.
       // For now, let's just return and let UI handle it.
       // If we auto-login or if the UI redirects to login which then logs in:
