@@ -63,26 +63,43 @@ def add_size_chart(brand_id, category, sizes):
         except Exception as e:
             print(f"  - Failed to add {size.get('size_label')}: {e}")
 
-if __name__ == "__main__":
-    # Example Usage:
-    # 1. Define Brand Name
-    brand_name = "PullBear" 
-    
-    # 2. Get/Create Brand
+# Universal Standard Size Chart to standardize Zara
+UNIVERSAL_SIZE_CHART = [
+    # Tops
+    {"category": "top", "size_label": "S", "min_chest": 88, "max_chest": 96, "min_waist": 73, "max_waist": 81},
+    {"category": "top", "size_label": "M", "min_chest": 96, "max_chest": 104, "min_waist": 81, "max_waist": 89},
+    {"category": "top", "size_label": "L", "min_chest": 104, "max_chest": 112, "min_waist": 89, "max_waist": 97},
+    {"category": "top", "size_label": "XL", "min_chest": 112, "max_chest": 124, "min_waist": 97, "max_waist": 109},
+    {"category": "top", "size_label": "XXL", "min_chest": 124, "max_chest": 136, "min_waist": 109, "max_waist": 121},
+    # Bottoms
+    {"category": "bottom", "size_label": "S", "min_waist": 73, "max_waist": 81, "min_hips": 88, "max_hips": 96},
+    {"category": "bottom", "size_label": "M", "min_waist": 81, "max_waist": 89, "min_hips": 96, "max_hips": 104},
+    {"category": "bottom", "size_label": "L", "min_waist": 89, "max_waist": 97, "min_hips": 104, "max_hips": 112},
+    {"category": "bottom", "size_label": "XL", "min_waist": 97, "max_waist": 109, "min_hips": 112, "max_hips": 120},
+    {"category": "bottom", "size_label": "XXL", "min_waist": 109, "max_waist": 121, "min_hips": 120, "max_hips": 128},
+]
+
+def reset_brand_to_universal(brand_name):
+    print(f"--- Resetting {brand_name} to Universal Standards ---")
     brand_id = add_brand(brand_name)
-    
-    if brand_id:
-        # 3. Define Data (Change this for your needs)
-        # Example: Men's T-Shirts
-        my_sizes = [
-            {"size_label": "S", "min_chest": 90, "max_chest": 95},
-            {"size_label": "M", "min_chest": 96, "max_chest": 101},
-            {"size_label": "L", "min_chest": 102, "max_chest": 107},
-            {"size_label": "XL", "min_chest": 108, "max_chest": 112},
-        ]
-        
-        add_size_chart(brand_id, "top", my_sizes)
-        # Uncomment to add bottoms:
-        # add_size_chart(brand_id, "bottom", [...])
-        
-        print("Done!")
+    if not brand_id: return
+
+    # 1. DELETE existing charts for this brand to avoid conflicts/duplicates
+    print(f"Clearing old data for {brand_name} (ID: {brand_id})...")
+    try:
+        supabase.table("size_catalogs").delete().eq("brand_id", brand_id).execute()
+    except Exception as e:
+        print(f"Error clearing data: {e}")
+
+    # 2. INSERT Universal Data
+    # Filter for Tops and Bottoms
+    tops = [s for s in UNIVERSAL_SIZE_CHART if s["category"] == "top"]
+    bottoms = [s for s in UNIVERSAL_SIZE_CHART if s["category"] == "bottom"]
+
+    add_size_chart(brand_id, "top", tops)
+    add_size_chart(brand_id, "bottom", bottoms)
+    print(f"Successfully reset {brand_name} to Universal Standards.")
+
+if __name__ == "__main__":
+    # Run this to fix Zara (and potentially others)
+    reset_brand_to_universal("Zara")

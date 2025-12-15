@@ -133,6 +133,22 @@ class SizeRecommender:
         if "S" in label: return 1
         return 0
 
+    # Universal Standard Size Chart (International Fallback)
+    UNIVERSAL_SIZE_CHART = [
+        # Tops
+        {"category": "top", "size_label": "S", "min_chest": 88, "max_chest": 96, "min_waist": 73, "max_waist": 81},
+        {"category": "top", "size_label": "M", "min_chest": 96, "max_chest": 104, "min_waist": 81, "max_waist": 89},
+        {"category": "top", "size_label": "L", "min_chest": 104, "max_chest": 112, "min_waist": 89, "max_waist": 97},
+        {"category": "top", "size_label": "XL", "min_chest": 112, "max_chest": 124, "min_waist": 97, "max_waist": 109},
+        {"category": "top", "size_label": "XXL", "min_chest": 124, "max_chest": 136, "min_waist": 109, "max_waist": 121},
+        # Bottoms
+        {"category": "bottom", "size_label": "S", "min_waist": 73, "max_waist": 81, "min_hips": 88, "max_hips": 96},
+        {"category": "bottom", "size_label": "M", "min_waist": 81, "max_waist": 89, "min_hips": 96, "max_hips": 104},
+        {"category": "bottom", "size_label": "L", "min_waist": 89, "max_waist": 97, "min_hips": 104, "max_hips": 112},
+        {"category": "bottom", "size_label": "XL", "min_waist": 97, "max_waist": 109, "min_hips": 112, "max_hips": 120},
+        {"category": "bottom", "size_label": "XXL", "min_waist": 109, "max_waist": 121, "min_hips": 120, "max_hips": 128},
+    ]
+
     def get_recommendation(self, user_id: str, product_data: Dict) -> Dict[str, Any]:
         print(f"--- Getting Recommendation for User: {user_id} ---")
         
@@ -159,18 +175,23 @@ class SizeRecommender:
         
         # 1. Fetch Size Chart
         size_chart = []
-        if is_zara:
-            brand_id = self._normalize_brand(brand_name)
-            if brand_id:
-                size_chart = self._get_size_chart(brand_id, category)
-        else:
-            brand_id = self._normalize_brand(brand_name)
-            if brand_id:
-                size_chart = self._get_size_chart(brand_id, category)
-
+        is_fallback = False
+        
+        brand_id = self._normalize_brand(brand_name)
+        if brand_id:
+            size_chart = self._get_size_chart(brand_id, category)
+        
         if not size_chart:
-            # Fallback if no chart found: Try general chart or return error
-            return {"error": f"No size chart found for {brand_name}"}
+            # Fallback logic
+            print(f"WARNING: No specific size chart found for {brand_name}. Using Universal Standard.")
+            size_chart = [
+                s for s in self.UNIVERSAL_SIZE_CHART 
+                if s["category"] == category
+            ]
+            is_fallback = True
+            
+        if not size_chart:
+             return {"error": "Could not determine size standards."}
 
         # 2. Detect Fit Type
         fit_type = self._detect_fit_type(description)
@@ -452,6 +473,11 @@ class SizeRecommender:
         
         detailed_report = "\n".join(report_lines)
         fit_message = f"We recommend {final_label}."
+        
+        if is_fallback:
+            report_lines.append("Note: Used universal International Sizes (S/M/L) as specific brand data was unverified.")
+            fit_message += " (Universal Std)."
+            
         if elasticity_bonus > 0:
              fit_message += " (Stretch Fabric)."
         elif adjustment_msg:

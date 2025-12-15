@@ -91,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: GoogleFonts.outfit(
                fontSize: 20, 
                fontWeight: FontWeight.w600,
-               color: Colors.white70
+               color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.7)
              ),
            ),
            const SizedBox(height: 8),
@@ -138,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
               hintText: AppLocalizations.of(context)!.urlHint,
               prefixIcon: Icon(Icons.link, color: Theme.of(context).primaryColor),
               filled: true,
-              fillColor: const Color(0xFF1E1E1E),
+              fillColor: Theme.of(context).inputDecorationTheme.fillColor,
               contentPadding: const EdgeInsets.all(20),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
             ),

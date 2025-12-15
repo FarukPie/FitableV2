@@ -137,10 +137,17 @@ class ProductScraper:
                 # ANTI-BOT DETECTION
                 if "Access Denied" in content or "Access to this page has been denied" in content:
                     print("Anti-Bot Detected: Access Denied")
-                    # Fallback to simple extraction if blocked, sometimes content is still there?
-                    # No, usually it's just a block page. 
-                    # We will raise error to let user know.
-                    raise Exception("Anti-Bot Detected: Access Denied (Try restarting backend or waiting)")
+                    # Fallback: Try to glean info from URL if blocked
+                    product_url_clean = url.split('?')[0]
+                    inferred_name = product_url_clean.split('/')[-1].replace('-', ' ').title()
+                    
+                    data["product_name"] = inferred_name
+                    data["brand"] = brand
+                    data["error"] = "Access Denied (Partial Data)"
+                    
+                    # Return partial data instead of raising exception so Fallback Logic operates
+                    print(f"Returning partial data due to block: {data}")
+                    return data
 
                 # Wait for key elements to ensure render
                 try:

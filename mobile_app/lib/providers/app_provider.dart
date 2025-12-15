@@ -14,7 +14,8 @@ class AppProvider with ChangeNotifier {
   RecommendationResult? _result;
   User? _user;
   bool _hasMeasurements = false;
-  Locale _locale = const Locale('en'); // Default to English
+  Locale _locale = const Locale('tr'); // Default to Turkish
+  ThemeMode _themeMode = ThemeMode.dark; // Default to Dark
 
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -22,6 +23,7 @@ class AppProvider with ChangeNotifier {
   User? get user => _user;
   bool get hasMeasurements => _hasMeasurements;
   Locale get locale => _locale;
+  ThemeMode get themeMode => _themeMode;
   bool get isAuthenticated => _user != null;
   String? get userId => _user?.id;
 
@@ -34,6 +36,11 @@ class AppProvider with ChangeNotifier {
   void setLocale(Locale locale) {
     if (_locale == locale) return;
     _locale = locale;
+    notifyListeners();
+  }
+
+  void toggleTheme() {
+    _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
     notifyListeners();
   }
 

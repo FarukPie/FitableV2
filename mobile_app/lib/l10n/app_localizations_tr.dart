@@ -197,4 +197,102 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get enterHeightFirst =>
       'Karış hesabını açmak için önce boyunuzu girin';
+
+  @override
+  String get helloTitle => 'Merhaba!';
+
+  @override
+  String get signInSubtitle => 'Hesabınıza giriş yapın';
+
+  @override
+  String get emailHint => 'E-posta';
+
+  @override
+  String get emailRequired => 'Lütfen e-posta giriniz';
+
+  @override
+  String get passwordHint => 'Şifre';
+
+  @override
+  String get passwordRequired => 'Lütfen şifre giriniz';
+
+  @override
+  String get rememberMe => 'Beni Hatırla';
+
+  @override
+  String get signInButton => 'GİRİŞ YAP';
+
+  @override
+  String get createAccountButton => 'HESAP OLUŞTUR';
+
+  @override
+  String get welcomeBackTitle => 'Tekrar Hoşgeldiniz!';
+
+  @override
+  String get welcomeBackSubtitle =>
+      'Mükemmel bedeninizi bulmak için giriş yapın.';
+
+  @override
+  String get createAccountTitle => 'Hesap Oluştur';
+
+  @override
+  String get joinUsSubtitle => 'Mükemmel bedeninizi bulmak için bize katılın';
+
+  @override
+  String get fullNameHint => 'Ad Soyad';
+
+  @override
+  String get ageHint => 'Yaş';
+
+  @override
+  String get genderLabel => 'Cinsiyet';
+
+  @override
+  String get usernameHint => 'Kullanıcı Adı';
+
+  @override
+  String get confirmPasswordHint => 'Şifreyi Onayla';
+
+  @override
+  String get passwordMismatch => 'Eşleşmiyor';
+
+  @override
+  String get passwordMinChars => 'En az 6 karakter';
+
+  @override
+  String get registrationSuccess => 'Kayıt başarılı! Lütfen giriş yapın.';
+
+  @override
+  String get alreadyHaveAccount => 'Zaten hesabınız var mı? ';
+
+  @override
+  String get logInLink => 'Giriş Yap';
+
+  @override
+  String get joinFitableTitle => 'Fitable\'a Katıl!';
+
+  @override
+  String get joinFitableSubtitle =>
+      'Daha iyi bir uyum için yolculuğuna bugün başla.';
+
+  @override
+  String get loginFailed => 'Giriş Başarısız: ';
+
+  @override
+  String get registrationFailed => 'Kayıt Başarısız: ';
+
+  @override
+  String get autoCalculated => 'Otomatik Hesaplandı';
+
+  @override
+  String get shapeInvertedTriangle => 'Ters Üçgen';
+
+  @override
+  String get shapeTriangle => 'Üçgen';
+
+  @override
+  String get shapeOval => 'Oval';
+
+  @override
+  String get shapeRectangular => 'Dikdörtgen';
 }

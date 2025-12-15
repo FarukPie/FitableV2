@@ -196,4 +196,100 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get enterHeightFirst => 'Enter height to enable hand span mode';
+
+  @override
+  String get helloTitle => 'Hello!';
+
+  @override
+  String get signInSubtitle => 'Sign in to your account';
+
+  @override
+  String get emailHint => 'E-mail';
+
+  @override
+  String get emailRequired => 'Please enter email';
+
+  @override
+  String get passwordHint => 'Password';
+
+  @override
+  String get passwordRequired => 'Please enter password';
+
+  @override
+  String get rememberMe => 'Remember me';
+
+  @override
+  String get signInButton => 'SIGN IN';
+
+  @override
+  String get createAccountButton => 'CREATE ACCOUNT';
+
+  @override
+  String get welcomeBackTitle => 'Welcome Back!';
+
+  @override
+  String get welcomeBackSubtitle => 'Log in to find your perfect fit.';
+
+  @override
+  String get createAccountTitle => 'Create Account';
+
+  @override
+  String get joinUsSubtitle => 'Join us to find your perfect fit';
+
+  @override
+  String get fullNameHint => 'Name Surname';
+
+  @override
+  String get ageHint => 'Age';
+
+  @override
+  String get genderLabel => 'Gender';
+
+  @override
+  String get usernameHint => 'Username';
+
+  @override
+  String get confirmPasswordHint => 'Confirm Password';
+
+  @override
+  String get passwordMismatch => 'Mismatch';
+
+  @override
+  String get passwordMinChars => 'Min 6 chars';
+
+  @override
+  String get registrationSuccess => 'Registration successful! Please login.';
+
+  @override
+  String get alreadyHaveAccount => 'Already have an account? ';
+
+  @override
+  String get logInLink => 'Log In';
+
+  @override
+  String get joinFitableTitle => 'Join Fitable!';
+
+  @override
+  String get joinFitableSubtitle => 'Start your journey to better fit today.';
+
+  @override
+  String get loginFailed => 'Login Failed: ';
+
+  @override
+  String get registrationFailed => 'Registration Failed: ';
+
+  @override
+  String get autoCalculated => 'Auto Calculated';
+
+  @override
+  String get shapeInvertedTriangle => 'Inverted Triangle';
+
+  @override
+  String get shapeTriangle => 'Triangle';
+
+  @override
+  String get shapeOval => 'Oval';
+
+  @override
+  String get shapeRectangular => 'Rectangular';
 }

@@ -457,6 +457,198 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter height to enable hand span mode'**
   String get enterHeightFirst;
+
+  /// No description provided for @helloTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello!'**
+  String get helloTitle;
+
+  /// No description provided for @signInSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to your account'**
+  String get signInSubtitle;
+
+  /// No description provided for @emailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'E-mail'**
+  String get emailHint;
+
+  /// No description provided for @emailRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter email'**
+  String get emailRequired;
+
+  /// No description provided for @passwordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get passwordHint;
+
+  /// No description provided for @passwordRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter password'**
+  String get passwordRequired;
+
+  /// No description provided for @rememberMe.
+  ///
+  /// In en, this message translates to:
+  /// **'Remember me'**
+  String get rememberMe;
+
+  /// No description provided for @signInButton.
+  ///
+  /// In en, this message translates to:
+  /// **'SIGN IN'**
+  String get signInButton;
+
+  /// No description provided for @createAccountButton.
+  ///
+  /// In en, this message translates to:
+  /// **'CREATE ACCOUNT'**
+  String get createAccountButton;
+
+  /// No description provided for @welcomeBackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome Back!'**
+  String get welcomeBackTitle;
+
+  /// No description provided for @welcomeBackSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Log in to find your perfect fit.'**
+  String get welcomeBackSubtitle;
+
+  /// No description provided for @createAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Account'**
+  String get createAccountTitle;
+
+  /// No description provided for @joinUsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Join us to find your perfect fit'**
+  String get joinUsSubtitle;
+
+  /// No description provided for @fullNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Name Surname'**
+  String get fullNameHint;
+
+  /// No description provided for @ageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Age'**
+  String get ageHint;
+
+  /// No description provided for @genderLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Gender'**
+  String get genderLabel;
+
+  /// No description provided for @usernameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get usernameHint;
+
+  /// No description provided for @confirmPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Password'**
+  String get confirmPasswordHint;
+
+  /// No description provided for @passwordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Mismatch'**
+  String get passwordMismatch;
+
+  /// No description provided for @passwordMinChars.
+  ///
+  /// In en, this message translates to:
+  /// **'Min 6 chars'**
+  String get passwordMinChars;
+
+  /// No description provided for @registrationSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration successful! Please login.'**
+  String get registrationSuccess;
+
+  /// No description provided for @alreadyHaveAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have an account? '**
+  String get alreadyHaveAccount;
+
+  /// No description provided for @logInLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Log In'**
+  String get logInLink;
+
+  /// No description provided for @joinFitableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Join Fitable!'**
+  String get joinFitableTitle;
+
+  /// No description provided for @joinFitableSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start your journey to better fit today.'**
+  String get joinFitableSubtitle;
+
+  /// No description provided for @loginFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Login Failed: '**
+  String get loginFailed;
+
+  /// No description provided for @registrationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration Failed: '**
+  String get registrationFailed;
+
+  /// No description provided for @autoCalculated.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto Calculated'**
+  String get autoCalculated;
+
+  /// No description provided for @shapeInvertedTriangle.
+  ///
+  /// In en, this message translates to:
+  /// **'Inverted Triangle'**
+  String get shapeInvertedTriangle;
+
+  /// No description provided for @shapeTriangle.
+  ///
+  /// In en, this message translates to:
+  /// **'Triangle'**
+  String get shapeTriangle;
+
+  /// No description provided for @shapeOval.
+  ///
+  /// In en, this message translates to:
+  /// **'Oval'**
+  String get shapeOval;
+
+  /// No description provided for @shapeRectangular.
+  ///
+  /// In en, this message translates to:
+  /// **'Rectangular'**
+  String get shapeRectangular;
 }
 
 class _AppLocalizationsDelegate
