@@ -64,7 +64,45 @@ class SizeRecommender:
         if any(w in desc for w in oversize_keywords):
             return "oversize"
             
+        if any(w in desc for w in oversize_keywords):
+            return "oversize"
+            
         return "regular"
+
+    def _calculate_elasticity_bonus(self, fabric_text: Optional[str]) -> float:
+        """
+        Returns a bonus in cm if fabric is stretchy.
+        """
+        if not fabric_text:
+            return 0.0
+            
+        text = fabric_text.lower()
+        stretch_keywords = ['elastan', 'elastane', 'spandex', 'lycra', 'polyamide']
+        
+        if any(kw in text for kw in stretch_keywords):
+            return 3.0 # Bonus for stretch
+            
+        return 0.0
+
+    def _get_ease_allowance(self, product_text: str) -> float:
+        """
+        Calculates ease allowance (giyim payı) based on product type.
+        Outerwear needs more room for layering.
+        """
+        text = product_text.lower()
+        
+        # Outerwear (+4.0 cm)
+        outerwear = ['coat', 'jacket', 'mont', 'kaban', 'ceket', 'parka', 'yelek', 'vest']
+        if any(w in text for w in outerwear):
+            return 4.0
+            
+        # Mid-Layers (+2.0 cm)
+        midlayers = ['sweatshirt', 'hoodie', 'sweater', 'kazak', 'hırka', 'cardigan']
+        if any(w in text for w in midlayers):
+            return 2.0
+            
+        # Base-Layers (0.0 cm) - Default
+        return 0.0
 
     def _estimate_waist(self, height: float, weight: float) -> float:
         """
@@ -112,9 +150,11 @@ class SizeRecommender:
         brand_name = product_data.get("brand", "Unknown")
         is_zara = "zara" in brand_name.lower()
         description = (product_data.get("description", "") + " " + product_data.get("product_name", "")).lower()
+        fabric_text = product_data.get("fabric_composition")
+        body_shape = measurements.get("body_shape", "regular") # Default to regular
         category = self._infer_category(product_data)
         
-        print(f"DEBUG: Inputs - Height: {u_height}, Weight: {u_weight}, Shoulder: {u_shoulder}, Chest: {u_chest}, Waist: {u_waist}")
+        print(f"DEBUG: Inputs - Height: {u_height}, Weight: {u_weight}, Shape: {body_shape}")
         print(f"DEBUG: Product - Brand: {brand_name}, Category: {category}")
         
         # 1. Fetch Size Chart
@@ -134,7 +174,20 @@ class SizeRecommender:
 
         # 2. Detect Fit Type
         fit_type = self._detect_fit_type(description)
+        # 2. Detect Fit Type
+        fit_type = self._detect_fit_type(description)
         print(f"DEBUG: Detected Fit Type: {fit_type}")
+
+        # 2.1 Calculate Elasticity Bonus
+        elasticity_bonus = self._calculate_elasticity_bonus(fabric_text)
+        if elasticity_bonus > 0:
+            print(f"DEBUG: Elasticity Bonus Applied: +{elasticity_bonus}cm")
+
+        # 2.2 Calculate Ease Allowance (Layering Room)
+        product_full_text = f"{brand_name} {description}"
+        ease_allowance = self._get_ease_allowance(product_full_text)
+        if ease_allowance > 0:
+            print(f"DEBUG: Ease Allowance Applied: +{ease_allowance}cm to User Measurements")
 
         # 3. CRITICAL: Sort Chart by Size Order
         # We need a reliable index. 
@@ -189,8 +242,11 @@ class SizeRecommender:
                 
                 if min_v is None or max_v is None: continue
                 
-                # If value fits in range
-                if min_v <= val <= max_v:
+                # Apply Elasticity Bonus to MAX values only
+                effective_max = max_v + elasticity_bonus
+
+                # If value fits in range (min_v <= val <= effective_max)
+                if min_v <= val <= effective_max:
                     return idx
                 
                 # If value is smaller than min -> this size is too big, but maybe smallest available? 
@@ -199,7 +255,8 @@ class SizeRecommender:
                 # We usually want the size where val is comfortable.
                 
                 # Logic: Find the size where val <= max_v. The first one effectively.
-                if val <= max_v:
+                # Logic: Find the size where val <= max_v. The first one effectively.
+                if val <= effective_max:
                     return idx
             
             # If we are here, val > max_v of all sizes?
@@ -214,6 +271,10 @@ class SizeRecommender:
              target_chest = u_shoulder * 0.85 # Approximation
              reasons.append(f"Chest estimated from Shoulder ({u_shoulder}cm).")
 
+        # Apply Ease Allowance to Chest
+        if target_chest > 0:
+            target_chest += ease_allowance
+
         if category == "top" and target_chest > 0:
              candidate_indices["chest"] = find_fitting_index(target_chest, "chest")
              
@@ -224,6 +285,11 @@ class SizeRecommender:
         if target_waist <= 0 and u_height > 0 and u_weight > 0:
             target_waist = self._estimate_waist(u_height, u_weight)
             reasons.append(f"Waist estimated from Height/Weight ({target_waist:.1f}cm).")
+        
+        # Apply Ease Allowance to Waist (Half effect usually sufficient for waist vs chest layering, 
+        # but for coats, everything effectively gets bulky. Let's apply half as per prompt request)
+        if target_waist > 0:
+             target_waist += (ease_allowance * 0.5)
         
         if target_waist > 0:
              # Check against 'waist' limits of the product (if available)
@@ -259,8 +325,47 @@ class SizeRecommender:
         if not valid_indices:
             return {"error": "Could not determine size from measurements."}
             
+        if not valid_indices:
+            return {"error": "Could not determine size from measurements."}
+            
         final_idx = max(valid_indices)
         
+        # --- Body Shape Adjustments ---
+        shape_msg = ""
+        chest_idx = candidate_indices["chest"]
+        waist_idx = candidate_indices["waist"]
+        
+        # Logic A: Inverted Triangle (Ters Üçgen) -> Broad Shoulders, Small Waist
+        # If the constraint is Waist (waist_idx == final_idx) but Chest fits in smaller size,
+        # AND product is Top.
+        # "Ters Üçgen": Omuz ölçüsünü baz al, bele takılma.
+        if body_shape == 'inverted_triangle' and category == 'top':
+             # If Waist is the limiting factor (final_idx == waist_idx)
+             # AND Chest size is smaller (chest_idx < final_idx)
+             if waist_idx == final_idx and chest_idx > -1 and chest_idx < final_idx:
+                 # Relax waist constraint. Use Chest size.
+                 # But check if fit_type is 'slim'. If slim, waist might still be tight?
+                 # Even so, user says "Bele takılma".
+                 final_idx = chest_idx
+                 shape_msg = "Body Shape (Inverted Triangle): Prioritized Chest/Shoulder measurement over Waist."
+
+        # Logic B: Oval (Elma) -> Wide Waist
+        # "Oval": Bel ölçüsünü "Kritik Kısıt" yap.
+        if body_shape == 'oval':
+            # Ensure Waist is respected absolutely.
+            # If final_idx is determined by Chest, but Waist needs LARGER (Recalculated above as max anyway)
+            # But what if Waist needs smaller? No, "Kritik Kısıt" usually means ensuring it fits.
+            # Since we take MAX(valid_indices), Waist is already a hard constraint if it's the largest.
+            # Maybe we recommend Relaxed fit?
+            if fit_type == 'slim' and waist_idx == final_idx:
+                 # If item is slim fit and waist is the constraint, warn heavily or size up?
+                 # Already handled by Slim+Waist adjustment (+1).
+                 # Maybe explicitly mention it.
+                 pass
+            elif fit_type == 'regular' or fit_type == 'oversize':
+                 # User fits better here.
+                 pass
+                 
         # 6. Step 4: Product Specific Adjustments
         # Slim fit -> Add 1 if constrained by Waist?
         # Only if Waist was the winner?
@@ -316,6 +421,21 @@ class SizeRecommender:
 
         if adjustment_msg:
              report_lines.append(f"Adjustment: {adjustment_msg}")
+              
+        if shape_msg:
+             report_lines.append(f"Shape Adjustment: {shape_msg}")
+
+        # Elasticity Note
+        if elasticity_bonus > 0:
+            # Check if user fell within the bonus range?
+            # It's hard to know which exact size won without tracing constraints.
+            # But we can verify if the max_constraint was helped by bonus.
+            # Simplified: Just notify.
+            report_lines.append(f"Fabric: Contains stretch material (+{elasticity_bonus}cm flexibility).")
+
+        # Ease Allowance Note
+        if ease_allowance > 0:
+            report_lines.append(f"Layering: Included {ease_allowance}cm allowance for layers (Outerwear/Mid-layer).")
 
         final_label = get_label(final_idx)
         
@@ -332,8 +452,10 @@ class SizeRecommender:
         
         detailed_report = "\n".join(report_lines)
         fit_message = f"We recommend {final_label}."
-        if adjustment_msg:
-            fit_message += " (Adjusted for Fit)." # Short summary
+        if elasticity_bonus > 0:
+             fit_message += " (Stretch Fabric)."
+        elif adjustment_msg:
+             fit_message += " (Adjusted for Fit)." # Short summary
 
         print(f"DEBUG: Final Decision: {final_label} based on Index {final_idx}")
         print(f"DEBUG: Report: {detailed_report}")

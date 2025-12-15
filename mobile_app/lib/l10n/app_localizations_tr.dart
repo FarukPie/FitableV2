@@ -68,6 +68,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get bodyMeasurements => 'Vücut Ölçüleri';
 
   @override
+  String get bodyShapeTitle => 'Vücut Tipi';
+
+  @override
   String get genderMale => 'Erkek';
 
   @override

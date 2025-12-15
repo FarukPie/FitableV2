@@ -116,7 +116,9 @@ class ProductScraper:
                 "product_name": "",
                 "price": "",
                 "image_url": "",
+                "image_url": "",
                 "description": "",
+                "fabric_composition": None,
                 "product_url": url,
             }
 
@@ -175,6 +177,10 @@ class ProductScraper:
                 # 4. Generic Fallback (Last Resort)
                 self._scrape_generic_fallback(soup, data)
 
+                # 5. Extract Fabric (Post-processing check)
+                if not data.get("fabric_composition"):
+                    self._extract_fabric_composition(soup, data)
+                
                 print(f"Final Data: {data}")
                 return data
 
@@ -243,3 +249,66 @@ class ProductScraper:
         if not data["product_name"]:
             tag = soup.find("title")
             if tag: data["product_name"] = self._clean_text(tag.get_text())
+
+    def _extract_fabric_composition(self, soup, data):
+        """
+        Tries to find material info using Regex and Keywords.
+        """
+        # Common Turkey sites uses 'Materyal', 'İçerik', 'Kompozisyon', or 'Material'
+        # We look for text nodes containing '%' patterns.
+        
+        candidates = []
+        
+        # 1. Search text nodes with '%' directly
+        # Regex: Digit%... or %Digit...
+        import re
+        fabric_pattern = re.compile(r"(\d+\s?%\s?[A-Za-zığüşöçİĞÜŞÖÇ]+|%s?\d+\s?[A-Za-zığüşöçİĞÜŞÖÇ]+)", re.IGNORECASE)
+        
+        # Limit search to likely areas (body text, sidebars, lists)
+        # Searching whole body might be slow but robust
+        # Let's search specific keywords first
+        
+        keywords = ["Materyal", "Material", "Kompozisyon", "İçerik", "Composition", "Kumaş"]
+        
+        # Helper to scan text
+        def scan_text(text):
+            if not text: return
+            matches = fabric_pattern.findall(text)
+            if matches:
+                # Join matches: "95% Pamuk", "5% Elastan" -> "95% Pamuk 5% Elastan"
+                candidates.append(" ".join(matches))
+
+        # Try to find specific sections
+        for kw in keywords:
+            # Find elements containing keyword
+            elements = soup.find_all(string=re.compile(kw, re.IGNORECASE))
+            for el in elements:
+                # Check parent or next sibling for the actual value
+                parent = el.parent
+                if parent:
+                    # Check parent's full text
+                    scan_text(parent.get_text())
+                    # Check next sibling
+                    nxt = parent.find_next_sibling()
+                    if nxt:
+                        scan_text(nxt.get_text())
+        
+        # If no keywords found, try searching the description we already extracted
+        if not candidates and data.get("description"):
+            scan_text(data["description"])
+            
+        # If still nothing, brute force p and li tags (last resort, maybe risky)
+        if not candidates:
+            # Try finding any text with "Cotton", "Pamuk", "Elastan", "Polyester"
+            material_terms = ["Pamuk", "Cotton", "Elastan", "Elastane", "Polyester", "Viskon", "Viscose", "Keten", "Linen"]
+            for term in material_terms:
+                 found = soup.find(string=re.compile(term, re.IGNORECASE))
+                 if found:
+                     scan_text(found.parent.get_text())
+                     if candidates: break
+                     
+        if candidates:
+            # Pick longest formatting or first unique
+            # Simplest: Just take the longest string found that looks like a composition
+            best_match = max(candidates, key=len)
+            data["fabric_composition"] = self._clean_text(best_match)

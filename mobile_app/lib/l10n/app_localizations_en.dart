@@ -68,6 +68,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bodyMeasurements => 'Body Measurements';
 
   @override
+  String get bodyShapeTitle => 'Body Shape';
+
+  @override
   String get genderMale => 'Male';
 
   @override

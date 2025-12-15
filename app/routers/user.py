@@ -33,6 +33,36 @@ async def update_measurements(measurements: UserMeasurementCreate):
                 except ValueError:
                     pass # Keep original if conversion fails
 
+        # --- AUTO-CALCULATE BODY SHAPE ---
+        # Logic:
+        # Inverted Triangle: Shoulder > Waist * 1.05 AND Shoulder > Hips * 1.05
+        # Oval: Waist > Chest AND Waist > Hips
+        # Triangle: Hips > Shoulder * 1.05 AND Hips > Chest
+        # Rectangular: Default
+        
+        shoulder = data.get("shoulder", 0) or 0
+        waist = data.get("waist", 0) or 0
+        hips = data.get("hips", 0) or 0
+        chest = data.get("chest", 0) or 0
+        
+        calc_shape = "rectangular" # Default
+        
+        if shoulder > 0 and waist > 0 and hips > 0:
+            if shoulder > waist * 1.05 and shoulder > hips * 1.05:
+                calc_shape = "inverted_triangle"
+            elif waist > chest and waist > hips:
+                # Check for Oval (Center heavy)
+                # Ensure it's significantly larger? Or just larger?
+                if waist > chest * 1.05:
+                    calc_shape = "oval"
+            elif hips > shoulder * 1.05 and hips > chest:
+                 calc_shape = "triangle"
+        
+        # If frontend sent a shape, ignore it? Or overwrite? 
+        # User requested "Automatic determination". So we overwrite.
+        data["body_shape"] = calc_shape
+        print(f"DEBUG: Auto-Calculated Body Shape: {calc_shape}")
+
         # Check if user measurements already exist (get all to handle duplicates)
         existing = supabase.table("user_measurements").select("id").eq("user_id", data["user_id"]).order("updated_at", desc=True).execute()
         

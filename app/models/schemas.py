@@ -13,6 +13,7 @@ class UserMeasurementCreate(BaseModel):
     arm_length: Optional[float] = None
     inseam: Optional[float] = None
     foot_length: Optional[float] = None
+    body_shape: Optional[str] = None # 'rectangular', 'triangle', 'inverted_triangle', 'oval'
 
     class Config:
         from_attributes = True
@@ -68,6 +69,20 @@ class HistoryItemCreate(BaseModel):
     price: str
     recommended_size: str
     confidence_score: float
+
+
+    class Config:
+        from_attributes = True
+
+class ProductScrapeResult(BaseModel):
+    brand: str
+    product_name: str
+    price: str
+    image_url: str
+    description: str
+    product_url: str
+    fabric_composition: Optional[str] = None
+    error: Optional[str] = None
 
     class Config:
         from_attributes = True

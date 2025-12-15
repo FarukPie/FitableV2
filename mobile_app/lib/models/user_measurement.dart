@@ -8,6 +8,7 @@ class UserMeasurement {
   final double legLength;
   final double footLength;
   final String gender;
+  final String? bodyShape;
 
   UserMeasurement({
     required this.height,
@@ -19,6 +20,7 @@ class UserMeasurement {
     required this.legLength,
     required this.footLength,
     required this.gender,
+    this.bodyShape,
   });
 
   factory UserMeasurement.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,7 @@ class UserMeasurement {
       legLength: (json['inseam'] as num?)?.toDouble() ?? 0.0, // Backend uses 'inseam'
       footLength: (json['foot_length'] as num?)?.toDouble() ?? 0.0,
       gender: json['gender'] ?? 'male',
+      bodyShape: json['body_shape'], // Optional
     );
   }
 
@@ -46,6 +49,7 @@ class UserMeasurement {
       'inseam': legLength, // Backend uses 'inseam'
       'foot_length': footLength,
       'gender': gender,
+      'body_shape': bodyShape,
     };
   }
 }

@@ -23,6 +23,10 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
   final _shoulderController = TextEditingController();
   final _legLengthController = TextEditingController();
   final _footLengthController = TextEditingController();
+  
+  // Body Shape (Read Only)
+  String? _currentBodyShape;
+
 
   // Animation State
   double _buttonScale = 1.0;
@@ -81,7 +85,10 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
         _hipsController.text = measurements.hips.toString();
         _shoulderController.text = measurements.shoulder.toString();
         _legLengthController.text = measurements.legLength.toString();
+        _legLengthController.text = measurements.legLength.toString();
         _footLengthController.text = measurements.footLength.toString();
+        _currentBodyShape = measurements.bodyShape;
+
       });
     }
   }
@@ -108,8 +115,36 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                     style: const TextStyle(color: Colors.white, fontSize: 16),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 24),
                 ],
+                const SizedBox(height: 16),
+                if (_currentBodyShape != null) ...[
+                  _buildSectionTitle(AppLocalizations.of(context)!.bodyShapeTitle),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2C2C2C),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.5)),
+                    ),
+                    child: Row(
+                      children: [
+                         Icon(_getShapeIcon(_currentBodyShape!), color: Theme.of(context).primaryColor, size: 32),
+                         const SizedBox(width: 16),
+                         Column(
+                           crossAxisAlignment: CrossAxisAlignment.start,
+                           children: [
+                             Text(_getShapeLabel(_currentBodyShape!), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                             const Text("Otomatik Hesaplandı", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                           ],
+                         )
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
                 _buildSectionTitle(AppLocalizations.of(context)!.personalDetails),
                 const SizedBox(height: 12),
                 Card(
@@ -320,6 +355,8 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
       return val;
   }
 
+
+
   void _submit() {
     HapticFeedback.lightImpact();
     if (_formKey.currentState!.validate()) {
@@ -335,6 +372,7 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
         legLength: _convertVal(_legLengthController.text),
         footLength: _convertVal(_footLengthController.text),
         gender: Provider.of<AppProvider>(context, listen: false).user!.gender,
+
       );
 
       Provider.of<AppProvider>(context, listen: false)
@@ -346,6 +384,26 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
           Navigator.pop(context);
         }
       });
+    }
+  }
+
+  String _getShapeLabel(String key) {
+    switch (key) {
+      case 'inverted_triangle': return 'Ters Üçgen';
+      case 'triangle': return 'Üçgen';
+      case 'oval': return 'Oval';
+      case 'rectangular': return 'Dikdörtgen';
+      default: return key;
+    }
+  }
+
+  IconData _getShapeIcon(String key) {
+     switch (key) {
+      case 'inverted_triangle': return Icons.filter_list_alt;
+      case 'triangle': return Icons.change_history;
+      case 'oval': return Icons.circle_outlined;
+      case 'rectangular': return Icons.crop_portrait;
+      default: return Icons.help_outline;
     }
   }
 }

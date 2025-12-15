@@ -212,6 +212,12 @@ abstract class AppLocalizations {
   /// **'Body Measurements'**
   String get bodyMeasurements;
 
+  /// No description provided for @bodyShapeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Body Shape'**
+  String get bodyShapeTitle;
+
   /// No description provided for @genderMale.
   ///
   /// In en, this message translates to:
