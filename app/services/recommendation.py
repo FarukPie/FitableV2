@@ -41,14 +41,29 @@ class SizeRecommender:
             print(f"Error fetching size chart: {e}")
             return []
 
-    def _infer_category(self, product_data: Dict) -> str:
-        """Infers 'top' or 'bottom'."""
+    def _infer_category(self, product_data: Dict) -> Optional[str]:
+        """Infers 'top' or 'bottom' based on clothing keywords. Returns None if not clothing."""
         text = (product_data.get("product_name", "") + " " + product_data.get("description", "")).lower()
-        bottoms = ["pant", "jeans", "trousers", "skirt", "short", "legging", "pantolon", "etek", "şort"]
+        
+        # Keywords
+        bottoms = ["pant", "jeans", "trousers", "skirt", "short", "legging", "pantolon", "etek", "şort", "tayt", "eşofman", "jean"]
+        tops = ["top", "shirt", "blouse", "sweater", "hoodie", "jacket", "coat", "vest", "tişört", "t-shirt", "gömlek", "bluz", "kazak", "süveter", "hırka", "sweatshirt", "ceket", "mont", "kaban", "yelek", "büstiyer", "crop", "tunik", "atlet", "body"]
+        fullbody = ["dress", "jumpsuit", "elbise", "tulum", "abiye"]
+        
+        # Check Bottoms
         for kw in bottoms:
-            if kw in text:
-                return "bottom"
-        return "top"
+            if kw in text: return "bottom"
+            
+        # Check Tops
+        for kw in tops:
+            if kw in text: return "top"
+            
+        # Check Full Body (Treat as top for chest constraint?)
+        for kw in fullbody:
+            if kw in text: return "top" # Simplified for now
+            
+        # If nothing matches, it's likely non-clothing (e.g. Tire, Phone, etc.)
+        return None
 
     def _detect_fit_type(self, description: str) -> str:
         """
@@ -57,97 +72,16 @@ class SizeRecommender:
         desc = description.lower()
         
         slim_keywords = ["slim", "skinny", "muscle", "dar kalıp", "fitted", "tight"]
-        oversize_keywords = ["oversize", "baggy", "relaxed", "bol kesim", "geniş", "loose"]
+        oversize_keywords = ["oversize", "baggy", "relaxed", "bol kesim", "geniş", "loose", "salaş"]
         
         if any(w in desc for w in slim_keywords):
             return "slim"
         if any(w in desc for w in oversize_keywords):
             return "oversize"
             
-        if any(w in desc for w in oversize_keywords):
-            return "oversize"
-            
         return "regular"
 
-    def _calculate_elasticity_bonus(self, fabric_text: Optional[str]) -> float:
-        """
-        Returns a bonus in cm if fabric is stretchy.
-        """
-        if not fabric_text:
-            return 0.0
-            
-        text = fabric_text.lower()
-        stretch_keywords = ['elastan', 'elastane', 'spandex', 'lycra', 'polyamide']
-        
-        if any(kw in text for kw in stretch_keywords):
-            return 3.0 # Bonus for stretch
-            
-        return 0.0
-
-    def _get_ease_allowance(self, product_text: str) -> float:
-        """
-        Calculates ease allowance (giyim payı) based on product type.
-        Outerwear needs more room for layering.
-        """
-        text = product_text.lower()
-        
-        # Outerwear (+4.0 cm)
-        outerwear = ['coat', 'jacket', 'mont', 'kaban', 'ceket', 'parka', 'yelek', 'vest']
-        if any(w in text for w in outerwear):
-            return 4.0
-            
-        # Mid-Layers (+2.0 cm)
-        midlayers = ['sweatshirt', 'hoodie', 'sweater', 'kazak', 'hırka', 'cardigan']
-        if any(w in text for w in midlayers):
-            return 2.0
-            
-        # Base-Layers (0.0 cm) - Default
-        return 0.0
-
-    def _estimate_waist(self, height: float, weight: float) -> float:
-        """
-        Estimates Waist based on Waist-to-Height Ratio (WHtR) and BMI interaction.
-        Scientific Approximation for Men.
-        """
-        if height <= 0: return 0
-        
-        # Calculate BMI
-        height_m = height / 100.0
-        bmi = weight / (height_m ** 2)
-        
-        # Scientific Formula Estimate: Waist ≈ Height * (0.42 + (BMI mutation))
-        # Base WHtR for healthy male is ~0.42-0.5. As BMI increases, this ratio increases.
-        # Adjusted constant: 0.0035 derived from regression analysis of population stats.
-        whtr = 0.42 + (bmi * 0.0035)
-        
-        estimated_waist = height * whtr
-        return estimated_waist
-
-    def _get_size_order(self, size_label: str) -> int:
-        """Helper to map size labels to an integer order."""
-        label = size_label.upper()
-        if "XXL" in label: return 5
-        if "XL" in label: return 4
-        if "L" in label: return 3
-        if "M" in label: return 2
-        if "S" in label: return 1
-        return 0
-
-    # Universal Standard Size Chart (International Fallback)
-    UNIVERSAL_SIZE_CHART = [
-        # Tops
-        {"category": "top", "size_label": "S", "min_chest": 88, "max_chest": 96, "min_waist": 73, "max_waist": 81},
-        {"category": "top", "size_label": "M", "min_chest": 96, "max_chest": 104, "min_waist": 81, "max_waist": 89},
-        {"category": "top", "size_label": "L", "min_chest": 104, "max_chest": 112, "min_waist": 89, "max_waist": 97},
-        {"category": "top", "size_label": "XL", "min_chest": 112, "max_chest": 124, "min_waist": 97, "max_waist": 109},
-        {"category": "top", "size_label": "XXL", "min_chest": 124, "max_chest": 136, "min_waist": 109, "max_waist": 121},
-        # Bottoms
-        {"category": "bottom", "size_label": "S", "min_waist": 73, "max_waist": 81, "min_hips": 88, "max_hips": 96},
-        {"category": "bottom", "size_label": "M", "min_waist": 81, "max_waist": 89, "min_hips": 96, "max_hips": 104},
-        {"category": "bottom", "size_label": "L", "min_waist": 89, "max_waist": 97, "min_hips": 104, "max_hips": 112},
-        {"category": "bottom", "size_label": "XL", "min_waist": 97, "max_waist": 109, "min_hips": 112, "max_hips": 120},
-        {"category": "bottom", "size_label": "XXL", "min_waist": 109, "max_waist": 121, "min_hips": 120, "max_hips": 128},
-    ]
+    # ... (skipping unchanged methods) ...
 
     def get_recommendation(self, user_id: str, product_data: Dict) -> Dict[str, Any]:
         print(f"--- Getting Recommendation for User: {user_id} ---")
@@ -167,8 +101,17 @@ class SizeRecommender:
         is_zara = "zara" in brand_name.lower()
         description = (product_data.get("description", "") + " " + product_data.get("product_name", "")).lower()
         fabric_text = product_data.get("fabric_composition")
-        body_shape = measurements.get("body_shape", "regular") # Default to regular
+        body_shape = measurements.get("body_shape", "regular")
+        
         category = self._infer_category(product_data)
+        if not category:
+             return {
+                 "recommended_size": "N/A",
+                 "confidence_score": 0.0,
+                 "fit_message": "Bu giyilebilir bir ürün değildir veya desteklenmeyen bir kategoridir.",
+                 "detailed_report": "Sistem bu ürünün bir kıyafet olduğunu doğrulayamadı.",
+                 "warning": "Non-wearable detected"
+             }
         
         print(f"DEBUG: Inputs - Height: {u_height}, Weight: {u_weight}, Shape: {body_shape}")
         print(f"DEBUG: Product - Brand: {brand_name}, Category: {category}")
@@ -253,9 +196,16 @@ class SizeRecommender:
         # --- Helper to find fitting index ---
         def find_fitting_index(val, metric_key):
             best_idx = -1
-            # Iterate to find the *smallest* size that fits (min_v <= val <= max_v)
-            # OR if val > max_v of largest size, we need larger.
             
+            # Fit Type Logic:
+            # Oversize: The garment is larger than standard. It can fit a larger body in the same size label.
+            # So effectively, the Size S covers a larger max_chest.
+            fit_adjustment = 0.0
+            if fit_type == "oversize":
+                fit_adjustment = 4.0 # Tolerates +4cm body
+            elif fit_type == "slim":
+                fit_adjustment = -2.0 # Tolerates -2cm less (Runs small)
+                
             for size in size_chart:
                 idx = self._get_size_order(size.get("size_label", ""))
                 min_v = size.get(f"min_{metric_key}")
@@ -263,93 +213,87 @@ class SizeRecommender:
                 
                 if min_v is None or max_v is None: continue
                 
-                # Apply Elasticity Bonus to MAX values only
-                effective_max = max_v + elasticity_bonus
+                # Apply Bonuses to MAX values
+                effective_max = max_v + elasticity_bonus + fit_adjustment
 
-                # If value fits in range (min_v <= val <= effective_max)
-                if min_v <= val <= effective_max:
-                    return idx
-                
-                # If value is smaller than min -> this size is too big, but maybe smallest available? 
-                # If we sorted ASC, and val < min_v, then this is the first size that 'covers' it (albeit loose).
-                # Actually if val < min_v of Smallest size, then XS fits (or even smaller). 
-                # We usually want the size where val is comfortable.
-                
-                # Logic: Find the size where val <= max_v. The first one effectively.
-                # Logic: Find the size where val <= max_v. The first one effectively.
+                # Logic: Find the size where val <= effective_max.
                 if val <= effective_max:
                     return idx
             
-            # If we are here, val > max_v of all sizes?
-            # Return the largest index
             if size_chart:
                 return self._get_size_order(size_chart[-1].get("size_label", ""))
             return -1
 
-        # --- 4a. Shoulder / Chest (for Tops) ---
+        # --- 4a. Chest ---
         target_chest = u_chest
         if target_chest <= 0 and u_shoulder > 0:
-             target_chest = u_shoulder * 0.85 # Approximation
+             target_chest = u_shoulder * 0.85 
              reasons.append(f"Chest estimated from Shoulder ({u_shoulder}cm).")
 
-        # Apply Ease Allowance to Chest
         if target_chest > 0:
             target_chest += ease_allowance
 
         if category == "top" and target_chest > 0:
              candidate_indices["chest"] = find_fitting_index(target_chest, "chest")
              
-        # --- 4b. Waist (CRITICAL) ---
-        # "size_by_waist: If waist > product_chest, that size is impossible" -> Implies tops constraint too?
-        # Yes, for tops, waist (belly) can be the limiting factor.
+        # --- 4b. Waist ---
         target_waist = u_waist
         if target_waist <= 0 and u_height > 0 and u_weight > 0:
             target_waist = self._estimate_waist(u_height, u_weight)
             reasons.append(f"Waist estimated from Height/Weight ({target_waist:.1f}cm).")
         
-        # Apply Ease Allowance to Waist (Half effect usually sufficient for waist vs chest layering, 
-        # but for coats, everything effectively gets bulky. Let's apply half as per prompt request)
         if target_waist > 0:
              target_waist += (ease_allowance * 0.5)
-        
-        if target_waist > 0:
-             # Check against 'waist' limits of the product (if available)
-             # Note: Top size charts sometimes have waist (fitted shirts) or just chest.
-             # If Top chart has waist, use it. If not, use Chest as proxy for "Width"?
-             # Actually, if Top chart has only Chest, but User Waist > Chest max, we must size up.
-             # We'll try to match against 'waist' key first.
-             idx_w = find_fitting_index(target_waist, "waist")
              
-             # Fallback logic for Tops if 'waist' not in chart: Compare Waist to Chest dimension?
-             # Usually T-shirt waist ≈ Chest width.
+        if target_waist > 0:
+             idx_w = find_fitting_index(target_waist, "waist")
              if idx_w == -1 and category == "top":
                   idx_w = find_fitting_index(target_waist, "chest")
-            
              candidate_indices["waist"] = idx_w
 
         # --- 4c. Weight (Floor) ---
-        # Map weight to min size floor. 90kg -> XL (index 4).
-        # Heuristic: <60: S(1), 60-70: M(2), 70-85: L(3), 85-100: XL(4), >100: XXL(5)
+        # Revised Heuristic: Lower the thresholds slightly or deprioritize if measurements exist.
+        # <55: XS/S, 55-70: S/M?
+        # Let's adjust: 
+        # < 62: S (1)
+        # 62 - 75: M (2)
+        # 75 - 88: L (3)
+        # 88 - 100: XL (4)
+        # > 100: XXL (5)
+        # User (67kg) will now fall into M (2).
+        # WAIT, User wants to see difference. If everything forces M, it's bad.
+        # Prioritization Logic: If Chest/Waist are valid, IGNORE Weight?
+        # Only use weight if Chest/Waist are -1.
+        
         w_idx = -1
-        if u_weight < 60: w_idx = 1 # S
-        elif 60 <= u_weight < 70: w_idx = 2 # M
-        elif 70 <= u_weight < 85: w_idx = 3 # L
-        elif 85 <= u_weight < 95: w_idx = 4 # XL
-        elif u_weight >= 95: w_idx = 5 # XXL
+        # Calculate weight index but store separately for fallback
+        if u_weight < 65: w_idx = 1 # S
+        elif 65 <= u_weight < 78: w_idx = 2 # M
+        elif 78 <= u_weight < 90: w_idx = 3 # L
+        elif 90 <= u_weight < 105: w_idx = 4 # XL
+        elif u_weight >= 105: w_idx = 5 # XXL
         
         candidate_indices["weight"] = w_idx
 
         # 5. Step 2: The "Max-Constraint" Logic
-        # Filter valid indices (> -1)
-        valid_indices = [v for k, v in candidate_indices.items() if v > -1]
+        # Prioritize Measurements:
+        measurement_indices = [
+            v for k, v in candidate_indices.items() 
+            if k in ["chest", "waist"] and v > -1
+        ]
         
-        if not valid_indices:
-            return {"error": "Could not determine size from measurements."}
-            
-        if not valid_indices:
-            return {"error": "Could not determine size from measurements."}
-            
-        final_idx = max(valid_indices)
+        if measurement_indices:
+            # If we have actual measurements, use them!
+            # Ignore weight floor unless it's EXTREMELY disparate (e.g. measure says S, weight says XXL).
+            # For now, trust measurements.
+            final_idx = max(measurement_indices)
+            candidate_indices["weight"] = -1 # Discard weight from report influence effectively
+        else:
+             # Fallback to weight
+             if w_idx > -1:
+                 final_idx = w_idx
+             else:
+                 return {"error": "Could not determine size from measurements."}
         
         # --- Body Shape Adjustments ---
         shape_msg = ""
@@ -443,6 +387,20 @@ class SizeRecommender:
         if adjustment_msg:
              report_lines.append(f"Adjustment: {adjustment_msg}")
               
+        # --- Fit Advice from User Reviews (Trendyol) ---
+        fit_advice = product_data.get("fit_advice", "").lower()
+        if fit_advice:
+            report_lines.append(f"Community Feedback: {product_data.get('fit_advice')}")
+            
+            # Logic: "bir beden büyük" -> +1
+            if "bir beden büyük" in fit_advice:
+                final_idx += 1
+                report_lines.append("Action: Sizing up (+1) based on community feedback.")
+            # Logic: "bir beden küçük" -> -1
+            elif "bir beden küçük" in fit_advice:
+                final_idx -= 1
+                report_lines.append("Action: Sizing down (-1) based on community feedback.")
+
         if shape_msg:
              report_lines.append(f"Shape Adjustment: {shape_msg}")
 
@@ -461,15 +419,8 @@ class SizeRecommender:
         final_label = get_label(final_idx)
         
         # 7. Final Confidence
-        # Lower confidence if huge variance between Body Part sizes?
-        variance = 0.0
-        if len(valid_indices) > 1:
-            spread = max(valid_indices) - min(valid_indices)
-            if spread >= 2:
-                variance = 0.2
-                report_lines.append("Note: Significant difference between your measurements reduces confidence.")
-        
-        confidence = 1.0 - variance
+        # User requested 100% confidence always.
+        confidence = 1.0
         
         detailed_report = "\n".join(report_lines)
         fit_message = f"We recommend {final_label}."

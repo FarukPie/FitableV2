@@ -22,15 +22,24 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final provider = Provider.of<AppProvider>(context);
 
-    // Listen for success state to navigate
+    // Listen for success state to navigate/show dialog
     if (provider.result != null && !provider.isLoading) {
       final result = provider.result!; // Capture result before clearing
       final url = _urlController.text; // Capture URL
+      
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        // Clear result first to prevent loops, then push
-        provider.clearResult(); 
-        _urlController.clear(); // Clear the text field
-        Navigator.push(context, MaterialPageRoute(builder: (_) => ResultScreen(result: result, productUrl: url)));
+        provider.clearResult(); // Clear first
+        
+        // CHECK: Is it a valid clothing item?
+        if (result.recommendedSize == "N/A") {
+             // Show Popup for Non-Wearable
+             _urlController.clear(); // Clear input
+             _showNonWearableDialog(context, result.fitMessage);
+        } else {
+             // Navigate to Result
+             _urlController.clear(); 
+             Navigator.push(context, MaterialPageRoute(builder: (_) => ResultScreen(result: result, productUrl: url)));
+        }
       });
     }
 
@@ -194,5 +203,31 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
       ],
     );
+  }
+
+  void _showNonWearableDialog(BuildContext context, String message) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+              SizedBox(width: 8),
+              const Text("Uyarı"),
+            ],
+          ),
+          content: Text(
+            message,
+            style: const TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+               onPressed: () => Navigator.of(ctx).pop(),
+               child: const Text("Tamam", style: TextStyle(fontWeight: FontWeight.bold)),
+            )
+          ],
+        ),
+      );
   }
 }

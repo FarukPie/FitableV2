@@ -173,7 +173,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Paste a Zara product link below to get an instant size recommendation based on your body profile.'**
+  /// **'Paste a product link below to get an instant size recommendation based on your body profile.'**
   String get homeSubtitle;
 
   /// No description provided for @urlHint.

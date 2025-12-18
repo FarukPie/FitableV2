@@ -180,6 +180,8 @@ class ProductScraper:
                 # 3. Specific Selectors
                 if brand == "Zara":
                     self._scrape_zara_specific(soup, data)
+                elif brand == "Trendyol":
+                    self._scrape_trendyol_specific(soup, data)
                     
                 # 4. Generic Fallback (Last Resort)
                 self._scrape_generic_fallback(soup, data)
@@ -189,6 +191,21 @@ class ProductScraper:
                     self._extract_fabric_composition(soup, data)
                 
                 print(f"Final Data: {data}")
+                
+                # SANITIZATION: Ensure no field is a list/dict, enabling safe JSON consumption
+                for k, v in data.items():
+                    if isinstance(v, list):
+                        # If list, join or take first
+                        data[k] = " ".join([str(x) for x in v]) if v else ""
+                    elif isinstance(v, dict):
+                         # If dict (unlikely for current schema but safety first), stringify
+                         data[k] = str(v)
+                    elif v is None:
+                        data[k] = ""
+                    else:
+                        # Ensure string
+                        data[k] = str(v)
+
                 return data
 
             except Exception as e:
@@ -199,6 +216,16 @@ class ProductScraper:
             finally:
                 await browser.close()
 
+    def _extract_image_url(self, img_entry, data):
+        if isinstance(img_entry, str):
+            data["image_url"] = img_entry
+        elif isinstance(img_entry, dict):
+            # Try common fields for ImageObject
+            if "url" in img_entry:
+                data["image_url"] = img_entry["url"]
+            elif "contentUrl" in img_entry:
+                data["image_url"] = img_entry["contentUrl"]
+    
     def _extract_from_json_ld(self, json_data: Dict, data: Dict):
         # ... logic same as before, simplified for brevity in this thought trace ...
         # I will include the full logic in the tool call
@@ -208,7 +235,11 @@ class ProductScraper:
                 data["product_name"] = self._clean_text(json_data["name"])
             if not data["image_url"] and "image" in json_data:
                 img = json_data["image"]
-                data["image_url"] = img[0] if isinstance(img, list) else img
+                if isinstance(img, list):
+                     if img:
+                         self._extract_image_url(img[0], data)
+                else:
+                    self._extract_image_url(img, data)
             if not data["description"] and "description" in json_data:
                 data["description"] = self._clean_text(json_data["description"])
             if not data["price"] and "offers" in json_data:
@@ -251,6 +282,40 @@ class ProductScraper:
                 if tag:
                     data["price"] = self._clean_text(tag.get_text())
                     break
+
+    def _scrape_trendyol_specific(self, soup, data):
+        # Trendyol specific selectors
+        if not data["product_name"]:
+             # Often in h1.pr-new-br or .product-name
+             for sel in ["h1.pr-new-br span", "h1.pr-new-br", ".product-name", "h1"]:
+                 tag = soup.select_one(sel)
+                 if tag:
+                     data["product_name"] = self._clean_text(tag.get_text())
+                     break
+        
+        if not data["price"]:
+            # Often .prc-dsc, .prc-slg
+             for sel in [".prc-dsc", ".prc-slg", ".product-price-container .price", ".pr-bx-w .prc-box-sll"]:
+                 tag = soup.select_one(sel)
+                 if tag:
+                     data["price"] = self._clean_text(tag.get_text())
+                     break
+        
+        if not data["image_url"]:
+             # Often .base-product-image img
+             tag = soup.select_one(".base-product-image img")
+             if tag:
+                 data["image_url"] = tag.get("src")
+
+        # Extract Fit Advice (Orange Box)
+        # Search for text "Kullanıcıların çoğu"
+        # Since class names are dynamic/obfuscated, text search is safer.
+        import re
+        advice_tag = soup.find(string=re.compile("Kullanıcıların çoğu", re.IGNORECASE))
+        if advice_tag:
+            # Usually strict text in a span or p
+            # "Kullanıcıların çoğu kendi bedenini almanızı öneriyor"
+            data["fit_advice"] = self._clean_text(advice_tag.parent.get_text())
 
     def _scrape_generic_fallback(self, soup, data):
         if not data["product_name"]:

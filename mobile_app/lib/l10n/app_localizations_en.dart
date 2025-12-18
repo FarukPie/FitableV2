@@ -46,7 +46,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeSubtitle =>
-      'Paste a Zara product link below to get an instant size recommendation based on your body profile.';
+      'Paste a product link below to get an instant size recommendation based on your body profile.';
 
   @override
   String get urlHint => 'Paste product URL here...';

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/user_measurement.dart';
@@ -63,6 +64,8 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!widget.isInitialSetup) {
         _loadMeasurements();
+      } else {
+        _showInstructionPopup();
       }
     });
   }
@@ -468,5 +471,100 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
       case 'rectangular': return Icons.crop_portrait;
       default: return Icons.help_outline;
     }
+  }
+
+  void _showInstructionPopup() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const _InstructionDialog(),
+    );
+  }
+}
+
+class _InstructionDialog extends StatefulWidget {
+  const _InstructionDialog();
+
+  @override
+  State<_InstructionDialog> createState() => _InstructionDialogState();
+}
+
+class _InstructionDialogState extends State<_InstructionDialog> {
+  bool _canClose = false;
+  int _secondsRemaining = 5;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_secondsRemaining > 0) {
+          _secondsRemaining--;
+        } else {
+          _canClose = true;
+          _timer?.cancel();
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      child: AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline, color: Color(0xFF2962FF)), // Using accentColor
+            SizedBox(width: 10),
+            Text("Ölçüm Tavsiyesi", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            RichText(
+              text: TextSpan(
+                style: const TextStyle(color: Colors.white70, fontSize: 15),
+                children: [
+                  const TextSpan(text: "Ölçümlerinizi nasıl yapacağınızı öğrenmek için, lütfen ilgili kutucuğun yanındaki "),
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: Icon(Icons.help_outline, color: Theme.of(context).primaryColor, size: 20),
+                  ),
+                  const TextSpan(text: " butonuna tıklayınız."),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: _canClose ? () => Navigator.of(context).pop() : null,
+            child: Text(
+              _canClose ? "Anladım" : "Anladım ($_secondsRemaining)",
+              style: TextStyle(
+                color: _canClose ? const Color(0xFF2962FF) : Colors.grey,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

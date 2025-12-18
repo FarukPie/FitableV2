@@ -46,7 +46,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get homeSubtitle =>
-      'Vücut profilinize göre anında beden önerisi almak için Zara ürün linkini aşağıya yapıştırın.';
+      'Vücut profilinize göre anında beden önerisi almak için ürün linkini aşağıya yapıştırın.';
 
   @override
   String get urlHint => 'Ürün URL\'sini buraya yapıştırın...';
