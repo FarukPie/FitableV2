@@ -230,6 +230,12 @@ abstract class AppLocalizations {
   /// **'Female'**
   String get genderFemale;
 
+  /// No description provided for @genderOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get genderOther;
+
   /// No description provided for @heightLabel.
   ///
   /// In en, this message translates to:
@@ -433,6 +439,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Measure from your heel to the tip of your longest toe.'**
   String get footLengthMeasureGuide;
+
+  /// No description provided for @chestMeasureGuide.
+  ///
+  /// In en, this message translates to:
+  /// **'Measure around the fullest part of your chest, keeping the tape horizontal.'**
+  String get chestMeasureGuide;
+
+  /// No description provided for @handSpanMeasureGuide.
+  ///
+  /// In en, this message translates to:
+  /// **'Spread your hand fully. Measure the distance by counting how many spans (thumb to pinky tip) fit the area.'**
+  String get handSpanMeasureGuide;
+
+  /// No description provided for @chestMeasureGuideMale.
+  ///
+  /// In en, this message translates to:
+  /// **'Measure around the fullest part of your chest, under your armpits.'**
+  String get chestMeasureGuideMale;
+
+  /// No description provided for @chestMeasureGuideFemale.
+  ///
+  /// In en, this message translates to:
+  /// **'Measure around the fullest part of your bust.'**
+  String get chestMeasureGuideFemale;
 
   /// No description provided for @handSpanMode.
   ///

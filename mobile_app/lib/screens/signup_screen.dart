@@ -58,10 +58,13 @@ class _SignupScreenState extends State<SignupScreen> {
       );
       
       if (mounted) {
+        // Auto-login successful
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.registrationSuccess)),
+          const SnackBar(content: Text('Welcome! Registration successful.')),
         );
-        Navigator.pop(context); // Return to login
+        // We pop the SignupScreen so the user falls back to the main app flow
+        // The main AuthGate will see authentication and show the Home/Measure screen.
+        Navigator.pop(context); 
       }
     } catch (e) {
       if (mounted) {
@@ -88,7 +91,7 @@ class _SignupScreenState extends State<SignupScreen> {
     // Let's use the l10n strings if available or hardcode mapped to language.
     // Since we didn't add gender option keys, I'll stick to a simple list but ideally this should be mapped.
     // Wait, let's see if we have gender keys. We have genderMale/genderFemale in existing arb.
-    final List<String> genderOptions = [l10n.genderMale, l10n.genderFemale];
+    final List<String> genderOptions = [l10n.genderMale, l10n.genderFemale, l10n.genderOther];
 
     return Scaffold(
       backgroundColor: _backgroundColor,

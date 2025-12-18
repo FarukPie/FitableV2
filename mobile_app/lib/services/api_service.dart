@@ -8,7 +8,7 @@ import '../models/history_item.dart';
 class ApiService {
   // Use 127.0.0.1 for Windows/Web testing. 
   // Use 10.0.2.2 ONLY for Android Emulator.
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  static const String baseUrl = 'http://localhost:8000';
 
   Future<void> updateMeasurements(String userId, UserMeasurement measurements) async {
     final url = Uri.parse('$baseUrl/update-measurements'); // Endpoint needs to facilitate this
@@ -85,7 +85,7 @@ class ApiService {
     }
   }
 
-  Future<void> register(String email, String password, String username, String fullName, String gender, int age) async {
+  Future<User> register(String email, String password, String username, String fullName, String gender, int age) async {
     final url = Uri.parse('$baseUrl/auth/signup');
     try {
       final response = await http.post(
@@ -101,7 +101,26 @@ class ApiService {
         }),
       );
 
-      if (response.statusCode != 200) {
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        // If auto-login successful, we expect 'access_token' and 'user'
+        if (data['access_token'] != null && data['user'] != null) {
+          return User.fromJson(data);
+        } else {
+             // Fallback if backend didn't return tokens (shouldn't happen with new backend)
+             // But we need to return a User. MOCK IT or throw?
+             // Prompt says "auto-login". If backend fails to log in, we should probably just finish.
+             // But signature changed to Future<User>.
+             if (data['user'] != null) {
+                 return User(
+                   id: data['user']['id'], 
+                   email: data['user']['email'],
+                   gender: 'unknown' // Fallback
+                 );
+             }
+             throw Exception('Registration succeeded but auto-login failed.');
+        }
+      } else {
         final error = jsonDecode(response.body);
         throw Exception(error['detail'] ?? 'Registration failed');
       }

@@ -46,7 +46,27 @@ async def signup(user: UserRegister):
         
         print(f"DEBUG: Create User Response: {response}")
         
-        return {"status": "success", "message": "User registered and confirmed. You can now login.", "user": {"id": response.user.id, "email": response.user.email}}
+        # Auto-Login: Immediately sign in with password to get tokens
+        login_response = supabase_anon.auth.sign_in_with_password({
+            "email": user.email,
+            "password": user.password
+        })
+
+        if login_response.session:
+            return {
+                "status": "success",
+                "message": "User registered and logged in.",
+                "access_token": login_response.session.access_token,
+                "refresh_token": login_response.session.refresh_token,
+                "user": {
+                    "id": response.user.id,
+                    "email": response.user.email,
+                    # Add other metadata needed by frontend if any
+                }
+            }
+        else:
+             # Should not happen if create_user succeeded with auto-confirm
+             return {"status": "success", "message": "User registered. Please login manually."}
 
     except Exception as e:
         print(f"Signup Error: {e}")

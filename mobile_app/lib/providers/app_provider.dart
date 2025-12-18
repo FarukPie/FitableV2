@@ -69,11 +69,9 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      await _apiService.register(email, password, username, fullName, gender, age);
-      // Optional: Auto-login after register, or let user login.
-      // For now, let's just return and let UI handle it.
-      // If we auto-login or if the UI redirects to login which then logs in:
-      _hasMeasurements = false; // New user definitely has no measurements
+      _user = await _apiService.register(email, password, username, fullName, gender, age);
+      // New user has no measurements yet.
+      _hasMeasurements = false; 
     } catch (e) {
       _error = e.toString();
       rethrow;

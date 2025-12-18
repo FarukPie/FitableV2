@@ -77,6 +77,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get genderFemale => 'Female';
 
   @override
+  String get genderOther => 'Other';
+
+  @override
   String get heightLabel => 'Height (cm)';
 
   @override
@@ -182,6 +185,22 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get footLengthMeasureGuide =>
       'Measure from your heel to the tip of your longest toe.';
+
+  @override
+  String get chestMeasureGuide =>
+      'Measure around the fullest part of your chest, keeping the tape horizontal.';
+
+  @override
+  String get handSpanMeasureGuide =>
+      'Spread your hand fully. Measure the distance by counting how many spans (thumb to pinky tip) fit the area.';
+
+  @override
+  String get chestMeasureGuideMale =>
+      'Measure around the fullest part of your chest, under your armpits.';
+
+  @override
+  String get chestMeasureGuideFemale =>
+      'Measure around the fullest part of your bust.';
 
   @override
   String get handSpanMode => 'No Tape? (Use Hand Span)';

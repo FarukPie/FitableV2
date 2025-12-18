@@ -31,6 +31,7 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
 
   // Animation State
   double _buttonScale = 1.0;
+  bool _showFullForm = false; // Changed from _areBasicDetailsValid
 
   bool _isHandSpanMode = false;
   double _estimatedHandSpan = 0.0;
@@ -57,10 +58,26 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
     }
   }
 
+  void _onContinuePressed() {
+    final height = _heightController.text.trim();
+    final weight = _weightController.text.trim();
+    if (height.isNotEmpty && weight.isNotEmpty) {
+      setState(() {
+        _showFullForm = true;
+      });
+    } else {
+       ScaffoldMessenger.of(context).showSnackBar(
+         SnackBar(content: Text(AppLocalizations.of(context)!.requiredError)), 
+       );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _heightController.addListener(_calculateHandSpan);
+    // Removed auto-check listeners
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!widget.isInitialSetup) {
         _loadMeasurements();
@@ -97,7 +114,9 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
         _legLengthController.text = measurements.legLength.toString();
         _footLengthController.text = measurements.footLength.toString();
         _currentBodyShape = measurements.bodyShape;
-
+        
+        // Show full form if data exists
+        _showFullForm = true;
       });
     }
   }
@@ -184,7 +203,7 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                                  Text(_getShapeLabel(_currentBodyShape!), style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.bold, fontSize: 18)),
                                  const SizedBox(height: 4),
                                  Text(AppLocalizations.of(context)!.autoCalculated, style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7), fontSize: 13)),
-                                ],
+                               ],
                              )
                           ],
                         ),
@@ -215,94 +234,154 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                     ),
                     const SizedBox(height: 32),
                     
-                    _buildSectionTitle(AppLocalizations.of(context)!.bodyMeasurements),
-                    const SizedBox(height: 12),
-                    
-                    // --- Hand Span Toggle Section ---
-                    Container(
-                       decoration: BoxDecoration(
-                         color: _isHandSpanMode ? Theme.of(context).primaryColor.withOpacity(0.15) : Theme.of(context).cardTheme.color,
-                         borderRadius: BorderRadius.circular(16),
-                         border: Border.all(color: _isHandSpanMode ? Theme.of(context).primaryColor : Colors.transparent),
-                       ),
-                       child: SwitchListTile(
-                         title: Text(AppLocalizations.of(context)!.handSpanMode, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
-                         subtitle: Text(
-                             _estimatedHandSpan > 0 
-                               ? AppLocalizations.of(context)!.handSpanInfo(_estimatedHandSpan.toStringAsFixed(1))
-                               : AppLocalizations.of(context)!.enterHeightFirst,
-                             style: TextStyle(color: _estimatedHandSpan > 0 ? Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7) : Colors.grey)
-                         ),
-                         value: _isHandSpanMode,
-                         onChanged: _estimatedHandSpan > 0 
-                           ? (val) => setState(() => _isHandSpanMode = val) 
-                           : null,
-                         activeColor: Theme.of(context).primaryColor,
-                         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                         secondary: Icon(Icons.handshake_outlined, color: _isHandSpanMode ? Theme.of(context).primaryColor : Colors.grey),
-                       ),
-                    ),
-                    const SizedBox(height: 16),
+                    // Show "Continue" button only if full form is hidden
+                     if (!_showFullForm)
+                      Center(
+                        child: ElevatedButton(
+                           onPressed: _onContinuePressed,
+                           style: ElevatedButton.styleFrom(
+                             backgroundColor: Theme.of(context).primaryColor,
+                             foregroundColor: Colors.white,
+                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                             padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                           ),
+                           child: const Text("Continue", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        )
+                      ),
 
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).cardTheme.color,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [BoxShadow(color: Theme.of(context).cardTheme.shadowColor ?? Colors.black26, blurRadius: 10)],
-                      ),
-                      child: Column(
+                    AnimatedCrossFade(
+                      firstChild: const SizedBox.shrink(),
+                      secondChild: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                         _buildDynamicInput(AppLocalizations.of(context)!.shoulderLabel, _shoulderController,
-                             guideTitle: AppLocalizations.of(context)!.howToMeasureTitle,
-                             guideText: AppLocalizations.of(context)!.shoulderMeasureGuide),
-                         const SizedBox(height: 16),
-                         _buildDynamicInput(AppLocalizations.of(context)!.chestLabel, _chestController),
-                         const SizedBox(height: 16),
-                         _buildDynamicInput(AppLocalizations.of(context)!.waistLabel, _waistController,
-                             guideTitle: AppLocalizations.of(context)!.howToMeasureTitle,
-                             guideText: AppLocalizations.of(context)!.waistMeasureGuide),
-                         const SizedBox(height: 16),
-                         _buildDynamicInput(AppLocalizations.of(context)!.legLengthLabel, _legLengthController,
-                             guideTitle: AppLocalizations.of(context)!.howToMeasureTitle,
-                             guideText: AppLocalizations.of(context)!.legLengthMeasureGuide),
-                         const SizedBox(height: 16),
-                         _buildDynamicInput(AppLocalizations.of(context)!.footLengthLabel, _footLengthController,
-                             guideTitle: AppLocalizations.of(context)!.howToMeasureTitle,
-                             guideText: AppLocalizations.of(context)!.footLengthMeasureGuide),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-                    
-                    GestureDetector(
-                      onTapDown: (_) => setState(() => _buttonScale = 0.95),
-                      onTapUp: (_) => setState(() => _buttonScale = 1.0),
-                      onTapCancel: () => setState(() => _buttonScale = 1.0),
-                      child: AnimatedScale(
-                        scale: _buttonScale,
-                        duration: const Duration(milliseconds: 100),
-                        child: SizedBox(
-                          height: 60,
-                          child: ElevatedButton(
-                            onPressed: _submit,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Theme.of(context).primaryColor,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                              elevation: 8,
-                              shadowColor: Theme.of(context).primaryColor.withOpacity(0.5),
+                          _buildSectionTitle(AppLocalizations.of(context)!.bodyMeasurements),
+                          const SizedBox(height: 12),
+                          
+                          // --- Hand Span Toggle Section ---
+                          Container(
+                             decoration: BoxDecoration(
+                               color: _isHandSpanMode ? Theme.of(context).primaryColor.withOpacity(0.15) : Theme.of(context).cardTheme.color,
+                               borderRadius: BorderRadius.circular(16),
+                               border: Border.all(color: _isHandSpanMode ? Theme.of(context).primaryColor : Colors.transparent),
+                             ),
+                             child: SwitchListTile(
+                               title: Text(AppLocalizations.of(context)!.handSpanMode, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+                               subtitle: Text(
+                                   _estimatedHandSpan > 0 
+                                     ? AppLocalizations.of(context)!.handSpanInfo(_estimatedHandSpan.toStringAsFixed(1))
+                                     : AppLocalizations.of(context)!.enterHeightFirst,
+                                   style: TextStyle(color: _estimatedHandSpan > 0 ? Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7) : Colors.grey)
+                               ),
+                               value: _isHandSpanMode,
+                               onChanged: _estimatedHandSpan > 0 
+                                 ? (val) {
+                                     if (val) {
+                                       showDialog(
+                                         context: context,
+                                         builder: (context) => AlertDialog(
+                                           backgroundColor: Theme.of(context).cardTheme.color,
+                                            title: Row(
+                                              children: [
+                                                Icon(Icons.info_outline, color: Theme.of(context).primaryColor),
+                                                const SizedBox(width: 10),
+                                                Text("Bilgilendirme", style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
+                                              ],
+                                            ),
+                                           content: Text(
+                                             "Karış hesabı yöntemiyle tahmini ölçümlerinizi girebilirsiniz. \n\nDetaylı bilgi için lütfen ilgili kutucukların yanındaki bilgi (i) butonlarını kullanın.",
+                                             style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
+                                           ),
+                                           actions: [
+                                             TextButton(
+                                               onPressed: () {
+                                                 Navigator.pop(context);
+                                                 setState(() => _isHandSpanMode = true);
+                                               },
+                                               child: Text("Anladım", style: TextStyle(color: Theme.of(context).primaryColor)),
+                                             )
+                                           ],
+                                         ),
+                                       );
+                                     } else {
+                                       setState(() => _isHandSpanMode = false);
+                                     }
+                                 }
+                                 : null,
+                               activeColor: Theme.of(context).primaryColor,
+                               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                               secondary: Icon(Icons.handshake_outlined, color: _isHandSpanMode ? Theme.of(context).primaryColor : Colors.grey),
+                             ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).cardTheme.color,
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [BoxShadow(color: Theme.of(context).cardTheme.shadowColor ?? Colors.black26, blurRadius: 10)],
                             ),
-                            child: _isLoading 
-                             ? const CircularProgressIndicator(color: Colors.white)
-                             : Text(
-                              widget.isInitialSetup ? AppLocalizations.of(context)!.completeSetup : AppLocalizations.of(context)!.updateProfile,
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                            child: Column(
+                              children: [
+                               _buildDynamicInput(AppLocalizations.of(context)!.shoulderLabel, _shoulderController,
+                                   guideTitle: AppLocalizations.of(context)!.howToMeasureTitle,
+                                   guideText: AppLocalizations.of(context)!.shoulderMeasureGuide),
+                               const SizedBox(height: 16),
+                               _buildDynamicInput(AppLocalizations.of(context)!.chestLabel, _chestController,
+                                  guideTitle: AppLocalizations.of(context)!.howToMeasureTitle,
+                                  guideText: Provider.of<AppProvider>(context).user?.gender == 'female' 
+                                    ? AppLocalizations.of(context)!.chestMeasureGuideFemale 
+                                    : AppLocalizations.of(context)!.chestMeasureGuideMale),
+                               const SizedBox(height: 16),
+                               _buildDynamicInput(AppLocalizations.of(context)!.waistLabel, _waistController,
+                                   guideTitle: AppLocalizations.of(context)!.howToMeasureTitle,
+                                   guideText: AppLocalizations.of(context)!.waistMeasureGuide),
+                               const SizedBox(height: 16),
+                               _buildDynamicInput(AppLocalizations.of(context)!.legLengthLabel, _legLengthController,
+                                   guideTitle: AppLocalizations.of(context)!.howToMeasureTitle,
+                                   guideText: AppLocalizations.of(context)!.legLengthMeasureGuide),
+                               const SizedBox(height: 16),
+                               _buildDynamicInput(AppLocalizations.of(context)!.footLengthLabel, _footLengthController,
+                                   guideTitle: AppLocalizations.of(context)!.howToMeasureTitle,
+                                   guideText: AppLocalizations.of(context)!.footLengthMeasureGuide),
+                              ],
                             ),
                           ),
-                        ),
+                          const SizedBox(height: 40),
+                          
+                          GestureDetector(
+                            onTapDown: (_) => setState(() => _buttonScale = 0.95),
+                            onTapUp: (_) => setState(() => _buttonScale = 1.0),
+                            onTapCancel: () => setState(() => _buttonScale = 1.0),
+                            child: AnimatedScale(
+                              scale: _buttonScale,
+                              duration: const Duration(milliseconds: 100),
+                              child: SizedBox(
+                                height: 60,
+                                child: ElevatedButton(
+                                  onPressed: _submit,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Theme.of(context).primaryColor,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                                    elevation: 8,
+                                    shadowColor: Theme.of(context).primaryColor.withOpacity(0.5),
+                                  ),
+                                  child: _isLoading 
+                                   ? const CircularProgressIndicator(color: Colors.white)
+                                   : Text(
+                                    widget.isInitialSetup ? AppLocalizations.of(context)!.completeSetup : AppLocalizations.of(context)!.updateProfile,
+                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                        ],
                       ),
-                    )
+                      crossFadeState: _showFullForm ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                      duration: const Duration(milliseconds: 500),
+                    ),
                   ],
                 ),
               ),
@@ -337,8 +416,15 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
            displayText = "$label (${AppLocalizations.of(context)!.spansSuffix})";
            suffix = AppLocalizations.of(context)!.spansSuffix;
        }
+
+       // Switch guide text if in Hand Span Mode
+       String? effectiveGuideText = guideText;
+       if (_isHandSpanMode) {
+          effectiveGuideText = AppLocalizations.of(context)!.handSpanMeasureGuide;
+       }
        
-       return _buildInput(displayText, controller, suffixOverride: suffix, guideTitle: guideTitle, guideText: guideText);   
+       return _buildInput(displayText, controller, suffixOverride: suffix, guideTitle: guideTitle, guideText: effectiveGuideText);
+
   }
 
   void _showGuide(String title, String guide) {

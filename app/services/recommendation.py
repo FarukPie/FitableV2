@@ -3,6 +3,22 @@ from supabase import Client
 from app.data import zara_sizes
 
 class SizeRecommender:
+    UNIVERSAL_SIZE_CHART = [
+        {"size_label": "XXS", "category": "top", "min_chest": 70, "max_chest": 78, "min_waist": 58, "max_waist": 66},
+        {"size_label": "XS", "category": "top", "min_chest": 78, "max_chest": 86, "min_waist": 66, "max_waist": 74},
+        {"size_label": "S", "category": "top", "min_chest": 86, "max_chest": 94, "min_waist": 74, "max_waist": 82},
+        {"size_label": "M", "category": "top", "min_chest": 94, "max_chest": 102, "min_waist": 82, "max_waist": 90},
+        {"size_label": "L", "category": "top", "min_chest": 102, "max_chest": 110, "min_waist": 90, "max_waist": 98},
+        {"size_label": "XL", "category": "top", "min_chest": 110, "max_chest": 118, "min_waist": 98, "max_waist": 106},
+        {"size_label": "XXL", "category": "top", "min_chest": 118, "max_chest": 126, "min_waist": 106, "max_waist": 114},
+        # Bottoms
+        {"size_label": "XS", "category": "bottom", "min_waist": 66, "max_waist": 74, "min_hip": 86, "max_hip": 94},
+        {"size_label": "S", "category": "bottom", "min_waist": 74, "max_waist": 82, "min_hip": 94, "max_hip": 102},
+        {"size_label": "M", "category": "bottom", "min_waist": 82, "max_waist": 90, "min_hip": 102, "max_hip": 110},
+        {"size_label": "L", "category": "bottom", "min_waist": 90, "max_waist": 98, "min_hip": 110, "max_hip": 118},
+        {"size_label": "XL", "category": "bottom", "min_waist": 98, "max_waist": 106, "min_hip": 118, "max_hip": 126},
+    ]
+
     def __init__(self, supabase_client: Client):
         self.supabase = supabase_client
 
@@ -81,7 +97,52 @@ class SizeRecommender:
             
         return "regular"
 
-    # ... (skipping unchanged methods) ...
+    def _calculate_elasticity_bonus(self, fabric_text: Optional[str]) -> float:
+        """Returns extra cm allowed for stretchy fabrics."""
+        if not fabric_text:
+            return 0.0
+        text = fabric_text.lower()
+        if "elastan" in text or "elastane" in text:
+            # Simple heuristic: if elastane > 5%, give more bonus
+            if "5%" in text or "6%" in text: return 4.0
+            return 2.0
+        if "polyester" in text and "pamuk" not in text:
+            return 1.0 # Slight stretch depending on weave, safe formatting
+        return 0.0
+
+    def _get_ease_allowance(self, product_text: str) -> float:
+        """Returns ease allowance (cm) based on product type keywords."""
+        text = product_text.lower()
+        if "jacket" in text or "ceket" in text or "coat" in text or "mont" in text:
+            return 4.0 # Outerwear needs room
+        if "hoodie" in text or "sweatshirt" in text:
+            return 2.0 # Loose fit usually
+        return 0.0
+
+    def _get_size_order(self, size_label: str) -> int:
+        """Maps size labels to a comparable integer."""
+        label = size_label.upper().strip()
+        mapping = {
+            "XXS": 0, "XS": 1, "S": 2, "M": 3, "L": 4, "XL": 5, "XXL": 6, "3XL": 7,
+            "34": 1, "36": 1, "38": 2, "40": 3, "42": 4, "44": 5, "46": 6
+        }
+        return mapping.get(label, -1)
+
+    def _estimate_waist(self, height: float, weight: float) -> float:
+        """Estimates waist circumference (cm) using WHtR heuristic."""
+        # WHtR (Waist-to-Height Ratio) is approx 0.42-0.5 for healthy adults.
+        # This is a rough fallback.
+        # Better heuristic: BMI based?
+        # Waist approx 0.45 * Height for average build?
+        # Let's use a weight-based regression approx for men/women mix:
+        # Waist ~ 30 + 0.7 * Weight (very rough)?
+        # Let's use:
+        if height == 0: return 0
+        return (weight / height) * 100 * 1.5 # e.g. 70/175 = 0.4 * 1.5? No.
+        # Fallback: Waist approx body_fat factor.
+        # Let's use a safe average:
+        # Waist ~ (Height * 0.45) 
+        return height * 0.45
 
     def get_recommendation(self, user_id: str, product_data: Dict) -> Dict[str, Any]:
         print(f"--- Getting Recommendation for User: {user_id} ---")

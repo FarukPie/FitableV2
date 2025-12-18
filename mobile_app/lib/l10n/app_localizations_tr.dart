@@ -77,6 +77,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get genderFemale => 'Kadın';
 
   @override
+  String get genderOther => 'Diğer';
+
+  @override
   String get heightLabel => 'Boy (cm)';
 
   @override
@@ -182,6 +185,22 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get footLengthMeasureGuide =>
       'Topuğunuzdan en uzun parmağınızın ucuna kadar ölçün.';
+
+  @override
+  String get chestMeasureGuide =>
+      'Mezurayı, göğsünüzün en geniş (tepe) noktasından ve sırtınızdan geçecek şekilde ölçün.';
+
+  @override
+  String get handSpanMeasureGuide =>
+      'Elinizi tamamen açın. Başparmak ve serçe parmak ucunuz arasındaki mesafeyi (karış) sayarak ölçüm yapın.';
+
+  @override
+  String get chestMeasureGuideMale =>
+      'Mezurayı koltuk altlarınızın altından, göğsünüzün en geniş yerinden geçirerek ölçün.';
+
+  @override
+  String get chestMeasureGuideFemale =>
+      'Mezurayı göğsünüzün en dolgun yerinden (meme ucu hizası) geçirerek ölçün.';
 
   @override
   String get handSpanMode => 'Mezuram Yok (Karış Hesabı)';

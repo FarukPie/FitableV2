@@ -40,89 +40,89 @@ class ProductScraper:
         brand = self._detect_brand(url)
         print(f"--- Scraping URL: {url} (Brand: {brand}) ---")
         
-        async with async_playwright() as p:
-            # STEALTH: Advanced Browser Launch Configuration
-            browser = await p.chromium.launch(
-                headless=False, # Must be False to bypass anti-bot
-                args=[
-                    "--disable-blink-features=AutomationControlled",
-                    "--no-sandbox",
-                    "--disable-setuid-sandbox",
-                    "--disable-infobars",
-                    "--window-position=-2400,-2400", # Hide window off-screen
-                    "--ignore-certificate-errors",
-                    "--ignore-ssl-errors",
-                    "--disable-accelerated-2d-canvas",
-                    "--disable-gpu",
-                ]
-            )
-            
-            # STEALTH: Real User-Agent and Viewport
-            context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                locale="tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7", # Localized
-                viewport={"width": 1920, "height": 1080},
-                device_scale_factor=1,
-                has_touch=False,
-                is_mobile=False,
-                bypass_csp=True
-            )
-            
-            # STEALTH: Manual Injection of Evasion Scripts (Replacing playwright-stealth)
-            await context.add_init_script("""
-                // Override navigator.webdriver
-                Object.defineProperty(navigator, 'webdriver', {
-                    get: () => undefined
-                });
-
-                // Mock navigator.plugins and mimeTypes (Generic Chrome)
-                Object.defineProperty(navigator, 'plugins', {
-                    get: () => [1, 2, 3, 4, 5],
-                });
-                Object.defineProperty(navigator, 'languages', {
-                    get: () => ['en-US', 'en'],
-                });
-
-                // Mock window.chrome
-                window.chrome = {
-                    runtime: {}
-                };
-
-                // Pass WebGL checks
-                const getParameter = WebGLRenderingContext.prototype.getParameter;
-                WebGLRenderingContext.prototype.getParameter = function(parameter) {
-                    if (parameter === 37445) {
-                        return 'Intel Open Source Technology Center';
-                    }
-                    if (parameter === 37446) {
-                        return 'Mesa DRI Intel(R) Ivybridge Mobile ';
-                    }
-                    return getParameter(parameter);
-                };
+        browser = None
+        try:
+            async with async_playwright() as p:
+                # STEALTH: Advanced Browser Launch Configuration
+                browser = await p.chromium.launch(
+                    headless=False, # Must be False to bypass anti-bot
+                    args=[
+                        "--disable-blink-features=AutomationControlled",
+                        "--no-sandbox",
+                        "--disable-setuid-sandbox",
+                        "--disable-infobars",
+                        "--window-position=-2400,-2400", # Hide window off-screen
+                        "--ignore-certificate-errors",
+                        "--ignore-ssl-errors",
+                        "--disable-accelerated-2d-canvas",
+                        "--disable-gpu",
+                    ]
+                )
                 
-                // Permission Fix
-                const originalQuery = window.navigator.permissions.query;
-                window.navigator.permissions.query = (parameters) => (
-                    parameters.name === 'notifications' ?
-                        Promise.resolve({ state: Notification.permission }) :
-                        originalQuery(parameters)
-                );
-            """)
-            
-            page = await context.new_page()
+                # STEALTH: Real User-Agent and Viewport
+                context = await browser.new_context(
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                    locale="tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7", # Localized
+                    viewport={"width": 1920, "height": 1080},
+                    device_scale_factor=1,
+                    has_touch=False,
+                    is_mobile=False,
+                    bypass_csp=True
+                )
+                
+                # STEALTH: Manual Injection of Evasion Scripts (Replacing playwright-stealth)
+                await context.add_init_script("""
+                    // Override navigator.webdriver
+                    Object.defineProperty(navigator, 'webdriver', {
+                        get: () => undefined
+                    });
 
-            data = {
-                "brand": brand,
-                "product_name": "",
-                "price": "",
-                "image_url": "",
-                "image_url": "",
-                "description": "",
-                "fabric_composition": None,
-                "product_url": url,
-            }
+                    // Mock navigator.plugins and mimeTypes (Generic Chrome)
+                    Object.defineProperty(navigator, 'plugins', {
+                        get: () => [1, 2, 3, 4, 5],
+                    });
+                    Object.defineProperty(navigator, 'languages', {
+                        get: () => ['en-US', 'en'],
+                    });
 
-            try:
+                    // Mock window.chrome
+                    window.chrome = {
+                        runtime: {}
+                    };
+
+                    // Pass WebGL checks
+                    const getParameter = WebGLRenderingContext.prototype.getParameter;
+                    WebGLRenderingContext.prototype.getParameter = function(parameter) {
+                        if (parameter === 37445) {
+                            return 'Intel Open Source Technology Center';
+                        }
+                        if (parameter === 37446) {
+                            return 'Mesa DRI Intel(R) Ivybridge Mobile ';
+                        }
+                        return getParameter(parameter);
+                    };
+                    
+                    // Permission Fix
+                    const originalQuery = window.navigator.permissions.query;
+                    window.navigator.permissions.query = (parameters) => (
+                        parameters.name === 'notifications' ?
+                            Promise.resolve({ state: Notification.permission }) :
+                            originalQuery(parameters)
+                    );
+                """)
+                
+                page = await context.new_page()
+
+                data = {
+                    "brand": brand,
+                    "product_name": "",
+                    "price": "",
+                    "image_url": "",
+                    "description": "",
+                    "fabric_composition": None,
+                    "product_url": url,
+                }
+
                 # STEALTH: Random navigation delay
                 await asyncio.sleep(random.uniform(1.0, 3.0))
                 
@@ -143,10 +143,13 @@ class ProductScraper:
                     
                     data["product_name"] = inferred_name
                     data["brand"] = brand
-                    data["error"] = "Access Denied (Partial Data)"
+                    # Wait, if we return here, finally block inside 'try' logic?
+                    # Since we are inside the 'try' now, we need to ensure close happens.
+                    # We can't return easily from inside async with without closing.
+                    # Actually async_playwright context manager handles 'p', but browser needs closing?
+                    # Yes.
                     
-                    # Return partial data instead of raising exception so Fallback Logic operates
-                    print(f"Returning partial data due to block: {data}")
+                    data["error"] = "Access Denied (Partial Data)"
                     return data
 
                 # Wait for key elements to ensure render
@@ -208,12 +211,19 @@ class ProductScraper:
 
                 return data
 
-            except Exception as e:
-                print(f"Error scraping {url}: {e}")
-                data["error"] = str(e)
-                # If bot detected, we might return partial data or empty
-                return data
-            finally:
+        except Exception as e:
+            print(f"Error scraping {url}: {e}")
+            return {
+                "brand": brand,
+                "error": str(e),
+                "product_url": url,
+                 # Return bare minimum to avoid crashes downstream if possible
+                "product_name": "Scraping Failed",
+                "description": "", 
+                "price": ""
+            }
+        finally:
+            if browser:
                 await browser.close()
 
     def _extract_image_url(self, img_entry, data):
