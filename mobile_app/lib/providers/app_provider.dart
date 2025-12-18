@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+
 import '../models/user_measurement.dart';
 import '../models/recommendation_result.dart';
 import '../models/user_model.dart';
@@ -8,7 +8,7 @@ import '../services/api_service.dart';
 
 class AppProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
 
   // State
   bool _isLoading = false;
@@ -48,40 +48,7 @@ class AppProvider with ChangeNotifier {
 
 
 
-  Future<void> signInWithGoogle() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
 
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        // User canceled
-        _isLoading = false;
-        notifyListeners();
-        return;
-      }
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final String? idToken = googleAuth.idToken;
-      final String? accessToken = googleAuth.accessToken;
-
-      if (idToken == null) {
-        throw Exception('Could not retrieve ID Token from Google');
-      }
-
-      _user = await _apiService.googleLogin(idToken, accessToken: accessToken);
-      // Check if user has measurements
-      final measurements = await _apiService.getMeasurements(_user!.id);
-      _hasMeasurements = measurements != null;
-    } catch (e) {
-      _error = e.toString();
-      rethrow;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
 
   Future<void> login(String email, String password) async {
     _isLoading = true;

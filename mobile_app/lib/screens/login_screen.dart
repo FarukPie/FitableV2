@@ -287,62 +287,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                   const SizedBox(height: 30),
 
                                   // OR Divider
-                                  Row(
-                                    children: [
-                                      Expanded(child: Divider(color: Colors.grey[700], thickness: 1)),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                                        child: Text(
-                                          "veya",
-                                          style: TextStyle(
-                                            color: Colors.grey[500],
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ),
-                                      Expanded(child: Divider(color: Colors.grey[700], thickness: 1)),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 30),
+
 
                                   // Google Sign In Button
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      if (mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Google Girişi henüz aktif değil')),
-                                        );
-                                      }
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: Colors.black87,
-                                      padding: const EdgeInsets.symmetric(vertical: 20),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(30),
-                                      ),
-                                      elevation: 4,
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        // Simple icon if no asset available, or just text
-                                        // Assuming no asset, using generic text or Icon
-                                        // If we had an asset: Image.asset('assets/google_logo.png', height: 24),
-                                        // For now using text heavily.
-                                        const Icon(Icons.login, color: Colors.blueAccent), 
-                                        const SizedBox(width: 12),
-                                        const Text(
-                                            "Google ile Giriş Yap",
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              letterSpacing: 0.5,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
+
                                 ],
                               ),
                             ),

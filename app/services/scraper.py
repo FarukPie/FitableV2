@@ -45,7 +45,7 @@ class ProductScraper:
             async with async_playwright() as p:
                 # STEALTH: Advanced Browser Launch Configuration
                 browser = await p.chromium.launch(
-                    headless=False, # Must be False to bypass anti-bot
+                    headless=True, # Must be True for Render/Production
                     args=[
                         "--disable-blink-features=AutomationControlled",
                         "--no-sandbox",

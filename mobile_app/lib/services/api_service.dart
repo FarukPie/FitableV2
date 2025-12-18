@@ -8,7 +8,7 @@ import '../models/history_item.dart';
 class ApiService {
   // Use 127.0.0.1 for Windows/Web testing. 
   // Use 10.0.2.2 ONLY for Android Emulator.
-  static const String baseUrl = 'http://localhost:8000';
+  static const String baseUrl = 'https://fitablev2.onrender.com';
 
   Future<void> updateMeasurements(String userId, UserMeasurement measurements) async {
     final url = Uri.parse('$baseUrl/update-measurements'); // Endpoint needs to facilitate this
@@ -85,29 +85,7 @@ class ApiService {
     }
   }
 
-  Future<User> googleLogin(String idToken, {String? accessToken}) async {
-    final url = Uri.parse('$baseUrl/auth/google');
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'id_token': idToken,
-          'access_token': accessToken,
-        }),
-      );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return User.fromJson(data);
-      } else {
-        final error = jsonDecode(response.body);
-        throw Exception(error['detail'] ?? 'Google Login failed');
-      }
-    } catch (e) {
-      rethrow;
-    }
-  }
 
   Future<User> register(String email, String password, String username, String fullName, String gender, int age) async {
     final url = Uri.parse('$baseUrl/auth/signup');
