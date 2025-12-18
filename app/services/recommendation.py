@@ -337,24 +337,19 @@ class SizeRecommender:
         candidate_indices["weight"] = w_idx
 
         # 5. Step 2: The "Max-Constraint" Logic
-        # Prioritize Measurements:
-        measurement_indices = [
+        # 5. Step 2: The "Max-Constraint" Logic
+        # Prioritize Measurements but respect Weight as a floor.
+        # If your mass dictates L, you shouldn't wear S even if your chest is small.
+        
+        valid_indices = [
             v for k, v in candidate_indices.items() 
-            if k in ["chest", "waist"] and v > -1
+            if v > -1
         ]
         
-        if measurement_indices:
-            # If we have actual measurements, use them!
-            # Ignore weight floor unless it's EXTREMELY disparate (e.g. measure says S, weight says XXL).
-            # For now, trust measurements.
-            final_idx = max(measurement_indices)
-            candidate_indices["weight"] = -1 # Discard weight from report influence effectively
+        if valid_indices:
+            final_idx = max(valid_indices)
         else:
-             # Fallback to weight
-             if w_idx > -1:
-                 final_idx = w_idx
-             else:
-                 return {"error": "Could not determine size from measurements."}
+             return {"error": "Could not determine size from measurements."}
         
         # --- Body Shape Adjustments ---
         shape_msg = ""

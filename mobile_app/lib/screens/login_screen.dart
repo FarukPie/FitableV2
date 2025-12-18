@@ -308,8 +308,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                   // Google Sign In Button
                                   ElevatedButton(
                                     onPressed: () {
-                                      print("Google Login Pressed");
-                                      // TODO: Implement Google Sign In Logic
                                       if (mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           const SnackBar(content: Text('Google Girişi henüz aktif değil')),

@@ -107,3 +107,34 @@ async def logout():
         return {"status": "success"}
     except Exception as e:
          raise HTTPException(status_code=500, detail=str(e))
+
+class UserGoogleLogin(BaseModel):
+    id_token: str
+    access_token: str | None = None
+
+@router.post("/google")
+async def google_login(data: UserGoogleLogin):
+    try:
+        print(f"DEBUG: Attempting Google Login with token: {data.id_token[:10]}...")
+        response = supabase_anon.auth.sign_in_with_id_token({
+            "provider": "google",
+            "token": data.id_token,
+            "access_token": data.access_token
+        })
+
+        if response.session:
+            return {
+                "status": "success",
+                "access_token": response.session.access_token,
+                "refresh_token": response.session.refresh_token,
+                "user": {
+                    "id": response.user.id,
+                    "email": response.user.email,
+                }
+            }
+        else:
+             raise HTTPException(status_code=401, detail="Google authentication failed")
+
+    except Exception as e:
+        print(f"Google Login Error: {e}")
+        raise HTTPException(status_code=401, detail=str(e))
