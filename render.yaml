@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: fitable-backend
+    env: docker
+    region: frankfurt # You can change this to your preferred region
+    plan: free # Change to 'starter' or higher for production use if needed
+    
+    # Environment variables to be set in the Render Dashboard
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false

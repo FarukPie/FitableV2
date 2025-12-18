@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+.venv/
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+mobile_app/
+scripts/
+test_*.py
+debug_*.py
+inspect_db.py
+import_data.py
+run.py
