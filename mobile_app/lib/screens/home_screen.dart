@@ -7,6 +7,8 @@ import 'closet_screen.dart';
 import 'measure_form_screen.dart';
 import 'result_screen.dart';
 import 'package:size_recommendation_app/l10n/app_localizations.dart';
+import 'dart:async';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,6 +19,48 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _urlController = TextEditingController();
+  late StreamSubscription _intentDataStreamSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    // For sharing or opening while app is running in the background
+    _intentDataStreamSubscription = ReceiveSharingIntent.getTextStream().listen((String value) {
+      _handleSharedText(value);
+    }, onError: (err) {
+      print("getLinkStream error: $err");
+    });
+
+    // For sharing or opening while app is closed
+    ReceiveSharingIntent.getInitialText().then((String? value) {
+      if (value != null) {
+        _handleSharedText(value);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _intentDataStreamSubscription.cancel();
+    super.dispose();
+  }
+
+  void _handleSharedText(String text) {
+    // Basic URL extraction
+    // "Check out this product! https://trendyol.com/..."
+    final urlRegExp = RegExp(
+        r"((https?:www\.)|(https?:\/\/)|(www\.))[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}(\/[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)?");
+    final match = urlRegExp.firstMatch(text);
+    if (match != null) {
+      setState(() {
+        _urlController.text = text.substring(match.start, match.end);
+      });
+    } else {
+       setState(() {
+         _urlController.text = text;
+       });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
