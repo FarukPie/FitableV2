@@ -25,16 +25,18 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     // For sharing or opening while app is running in the background
-    _intentDataStreamSubscription = ReceiveSharingIntent.getTextStream().listen((String value) {
-      _handleSharedText(value);
+    _intentDataStreamSubscription = ReceiveSharingIntent.instance.getMediaStream().listen((List<SharedMediaFile> value) {
+      if (value.isNotEmpty && value.first.type == SharedMediaType.text) {
+         _handleSharedText(value.first.path);
+      }
     }, onError: (err) {
-      print("getLinkStream error: $err");
+      print("getIntentDataStream error: $err");
     });
 
     // For sharing or opening while app is closed
-    ReceiveSharingIntent.getInitialText().then((String? value) {
-      if (value != null) {
-        _handleSharedText(value);
+    ReceiveSharingIntent.instance.getInitialMedia().then((List<SharedMediaFile> value) {
+      if (value.isNotEmpty && value.first.type == SharedMediaType.text) {
+         _handleSharedText(value.first.path);
       }
     });
   }
