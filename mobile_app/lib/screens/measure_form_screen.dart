@@ -24,7 +24,6 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
   final _hipsController = TextEditingController(); // Hidden but kept for model compatibility
   final _shoulderController = TextEditingController();
   final _legLengthController = TextEditingController();
-  final _footLengthController = TextEditingController();
   
   // Body Shape (Read Only)
   String? _currentBodyShape;
@@ -92,7 +91,6 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
     _hipsController.dispose();
     _shoulderController.dispose();
     _legLengthController.dispose();
-    _footLengthController.dispose();
     super.dispose();
   }
 
@@ -107,7 +105,7 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
         _hipsController.text = measurements.hips.toString();
         _shoulderController.text = measurements.shoulder.toString();
         _legLengthController.text = measurements.legLength.toString();
-        _footLengthController.text = measurements.footLength.toString();
+        // _footLengthController.text = measurements.footLength.toString(); // Removed UI
         _currentBodyShape = measurements.bodyShape;
         
         // Show full form if data exists
@@ -335,10 +333,7 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                                _buildDynamicInput(AppLocalizations.of(context)!.legLengthLabel, _legLengthController,
                                    guideTitle: AppLocalizations.of(context)!.howToMeasureTitle,
                                    guideText: AppLocalizations.of(context)!.legLengthMeasureGuide),
-                               const SizedBox(height: 16),
-                               _buildDynamicInput(AppLocalizations.of(context)!.footLengthLabel, _footLengthController,
-                                   guideTitle: AppLocalizations.of(context)!.howToMeasureTitle,
-                                   guideText: AppLocalizations.of(context)!.footLengthMeasureGuide),
+                               // Foot length removed as per request
                               ],
                             ),
                           ),
@@ -384,44 +379,7 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                       const SizedBox(height: 16),
                       
                       // Logout Button
-                      Container(
-                        width: double.infinity,
-                        height: 55,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.white.withOpacity(0.1),
-                              Colors.white.withOpacity(0.05),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          border: Border.all(color: Colors.white.withOpacity(0.2)),
-                        ),
-                        child: InkWell(
-                          onTap: () {
-                             Provider.of<AppProvider>(context, listen: false).logout();
-                             Navigator.pop(context); 
-                          },
-                          borderRadius: BorderRadius.circular(16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.logout_rounded, color: Colors.white),
-                              const SizedBox(width: 8),
-                              const Text(
-                                "Çıkış Yap",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                      _buildLogoutButton(),
                       
                       const SizedBox(height: 16),
                       
@@ -606,7 +564,7 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
         waist: _convertVal(_waistController.text),
         hips: _hipsController.text.isNotEmpty ? double.parse(_hipsController.text) : 0.0,
         legLength: _convertVal(_legLengthController.text),
-        footLength: _convertVal(_footLengthController.text),
+        footLength: 0.0, // Removed UI, default to 0
         gender: Provider.of<AppProvider>(context, listen: false).user!.gender,
 
       );
@@ -656,6 +614,50 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => const _InstructionDialog(),
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      width: double.infinity,
+      height: 55,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: isDark ? null : Colors.grey.shade300, // Light mode visible background
+        gradient: isDark ? LinearGradient(
+          colors: [
+            Colors.white.withOpacity(0.1),
+            Colors.white.withOpacity(0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ) : null,
+        border: Border.all(color: isDark ? Colors.white.withOpacity(0.2) : Colors.transparent),
+      ),
+      child: InkWell(
+        onTap: () {
+           Provider.of<AppProvider>(context, listen: false).logout();
+           Navigator.pop(context); 
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.logout_rounded, color: isDark ? Colors.white : Colors.black87),
+            const SizedBox(width: 8),
+            Text(
+              "Çıkış Yap",
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black87,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

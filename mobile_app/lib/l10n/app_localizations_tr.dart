@@ -12,6 +12,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get appTitle => 'Fitable';
 
   @override
+  String get welcome => 'Hoşgeldiniz';
+
+  @override
   String get welcomeBack => 'Tekrar Hoşgeldiniz';
 
   @override
@@ -314,4 +317,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get shapeRectangular => 'Dikdörtgen';
+
+  @override
+  String get invalidCredentials => 'Kullanıcı adı veya şifre hatalı.';
 }

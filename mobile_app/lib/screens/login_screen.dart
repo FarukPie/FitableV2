@@ -45,9 +45,10 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } catch (e) {
       if (mounted) {
+        // Show friendly error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${AppLocalizations.of(context)!.loginFailed}${e.toString()}'),
+            content: Text(AppLocalizations.of(context)!.invalidCredentials),
             backgroundColor: Colors.redAccent,
           ),
         );

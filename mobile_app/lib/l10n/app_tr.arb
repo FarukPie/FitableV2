@@ -1,5 +1,6 @@
 {
     "appTitle": "Fitable",
+    "welcome": "Hoşgeldiniz",
     "welcomeBack": "Tekrar Hoşgeldiniz",
     "emailLabel": "E-posta",
     "emailError": "Lütfen e-posta giriniz",
@@ -96,5 +97,6 @@
     "shapeInvertedTriangle": "Ters Üçgen",
     "shapeTriangle": "Üçgen",
     "shapeOval": "Oval",
-    "shapeRectangular": "Dikdörtgen"
+    "shapeRectangular": "Dikdörtgen",
+    "invalidCredentials": "Kullanıcı adı veya şifre hatalı."
 }

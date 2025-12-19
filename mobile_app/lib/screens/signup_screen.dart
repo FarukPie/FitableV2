@@ -60,7 +60,7 @@ class _SignupScreenState extends State<SignupScreen> {
       if (mounted) {
         // Auto-login successful
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Welcome! Registration successful.')),
+          SnackBar(content: Text('${AppLocalizations.of(context)!.welcome}! ${AppLocalizations.of(context)!.registrationSuccess}')),
         );
         // We pop the SignupScreen so the user falls back to the main app flow
         // The main AuthGate will see authentication and show the Home/Measure screen.

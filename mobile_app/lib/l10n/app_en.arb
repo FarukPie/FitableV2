@@ -1,5 +1,6 @@
 {
     "appTitle": "Fitable",
+    "welcome": "Welcome",
     "welcomeBack": "Welcome Back",
     "emailLabel": "Email",
     "emailError": "Please enter email",
@@ -96,5 +97,6 @@
     "shapeInvertedTriangle": "Inverted Triangle",
     "shapeTriangle": "Triangle",
     "shapeOval": "Oval",
-    "shapeRectangular": "Rectangular"
+    "shapeRectangular": "Rectangular",
+    "invalidCredentials": "Invalid username or password."
 }

@@ -104,6 +104,12 @@ abstract class AppLocalizations {
   /// **'Fitable'**
   String get appTitle;
 
+  /// No description provided for @welcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome'**
+  String get welcome;
+
   /// No description provided for @welcomeBack.
   ///
   /// In en, this message translates to:
@@ -679,6 +685,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rectangular'**
   String get shapeRectangular;
+
+  /// No description provided for @invalidCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid username or password.'**
+  String get invalidCredentials;
 }
 
 class _AppLocalizationsDelegate

@@ -12,6 +12,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'Fitable';
 
   @override
+  String get welcome => 'Welcome';
+
+  @override
   String get welcomeBack => 'Welcome Back';
 
   @override
@@ -311,4 +314,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shapeRectangular => 'Rectangular';
+
+  @override
+  String get invalidCredentials => 'Invalid username or password.';
 }
