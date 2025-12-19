@@ -26,7 +26,7 @@ class ApiService {
           'user_id': userId,
           ...measurements.toJson(),
         }),
-      );
+      ).timeout(const Duration(seconds: 90));
 
       if (response.statusCode != 200) {
         throw Exception('Failed to update measurements: ${response.body}');
@@ -48,7 +48,7 @@ class ApiService {
           'user_id': userId,
           'url': productUrl,
         }),
-      );
+      ).timeout(const Duration(seconds: 90));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -71,7 +71,7 @@ class ApiService {
           'email': email,
           'password': password,
         }),
-      );
+      ).timeout(const Duration(seconds: 90));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -101,7 +101,7 @@ class ApiService {
           'gender': gender,
           'age': age,
         }),
-      );
+      ).timeout(const Duration(seconds: 90));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -133,7 +133,7 @@ class ApiService {
   Future<UserMeasurement?> getMeasurements(String userId) async {
     final url = Uri.parse('$baseUrl/measurements/$userId');
     try {
-      final response = await http.get(url);
+      final response = await http.get(url).timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
@@ -155,7 +155,7 @@ class ApiService {
   Future<List<HistoryItem>> getHistory(String userId) async {
     final url = Uri.parse('$baseUrl/history/$userId');
     try {
-      final response = await http.get(url);
+      final response = await http.get(url).timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
@@ -185,7 +185,7 @@ class ApiService {
           'recommended_size': result.recommendedSize,
           'confidence_score': result.confidenceScore,
         }),
-      );
+      ).timeout(const Duration(seconds: 30));
 
       if (response.statusCode != 200) {
         throw Exception('Failed to add to closet: ${response.body}');
@@ -199,7 +199,7 @@ class ApiService {
   Future<void> deleteHistoryItem(String itemId) async {
     final url = Uri.parse('$baseUrl/history/$itemId');
     try {
-      final response = await http.delete(url);
+      final response = await http.delete(url).timeout(const Duration(seconds: 30));
 
       if (response.statusCode != 200) {
         throw Exception('Failed to delete item: ${response.body}');
