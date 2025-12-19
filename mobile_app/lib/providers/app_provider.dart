@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/user_measurement.dart';
 import '../models/recommendation_result.dart';
@@ -8,6 +9,60 @@ import '../services/api_service.dart';
 
 class AppProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
+
+  AppProvider() {
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? userId = prefs.getString('user_id');
+      final String? userEmail = prefs.getString('user_email');
+      final String? userGender = prefs.getString('user_gender');
+      final String? accessToken = prefs.getString('access_token');
+
+      if (userId != null && userEmail != null && accessToken != null) {
+        // Restore user session
+        _user = User(
+          id: userId,
+          email: userEmail,
+          gender: userGender ?? 'male', // Default or save/load accordingly
+          accessToken: accessToken,
+        );
+        
+        // Fetch measurements to ensure data consistency
+        await fetchMeasurements(); 
+      }
+    } catch (e) {
+      print("Error checking login status: $e");
+    } finally {
+      // Small delay to prevent flickering if it's too fast, or just finish
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _saveUserSession(User user) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_id', user.id);
+    await prefs.setString('user_email', user.email);
+    await prefs.setString('user_gender', user.gender);
+    if (user.accessToken != null) {
+        await prefs.setString('access_token', user.accessToken!);
+    }
+  }
+
+  Future<void> _clearUserSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('user_id');
+    await prefs.remove('user_email');
+    await prefs.remove('user_gender');
+    await prefs.remove('access_token');
+  }
 
 
   // State
@@ -57,6 +112,7 @@ class AppProvider with ChangeNotifier {
 
     try {
       _user = await _apiService.login(email, password);
+      await _saveUserSession(_user!);
       // Check if user has measurements
       final measurements = await _apiService.getMeasurements(_user!.id);
       _hasMeasurements = measurements != null;
@@ -76,6 +132,7 @@ class AppProvider with ChangeNotifier {
 
     try {
       _user = await _apiService.register(email, password, username, fullName, gender, age);
+      await _saveUserSession(_user!);
       // New user has no measurements yet.
       _hasMeasurements = false; 
     } catch (e) {
@@ -88,6 +145,7 @@ class AppProvider with ChangeNotifier {
   }
 
   void logout() {
+    _clearUserSession();
     _user = null;
     _result = null;
     _error = null;

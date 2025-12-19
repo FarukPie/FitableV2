@@ -481,6 +481,36 @@ class SizeRecommender:
         detailed_report = "\n".join(report_lines)
         fit_message = f"{final_label} Beden Öneriyoruz."
         
+        # --- Specific Pant Recommendation (User Request) ---
+        if category == "bottom":
+             # Calculate Numeric Waist (Inch)
+             # Waist cm / 2.54
+             # E.g. 80cm / 2.54 = ~31.5 -> 31 or 32
+             # Round to nearest integer.
+             w_inch = round(target_waist / 2.54)
+             
+             # Calculate Inseam (Leg Length)
+             # Heuristic: Inseam ~ Height * 0.45 (Men/Women average varies, but 0.45 is rough norm)
+             # If we had real leg measurements, we'd use them.
+             leg_len_cm = u_height * 0.45
+             l_inch = round(leg_len_cm / 2.54)
+             
+             # Format strict user request: "pantolon bedeniniz bacak boyunuza gore 30 bedendır"
+             # We will try to match this phrasing but include Waist too as that's the primary "Size" (Beden).
+             # "Bel ölçünüze göre 31, Bacak boyunuza göre 32 Boy öneriyoruz."
+             # OR simple: "Pantolon Bedeniniz: 31 (Boy: 32)"
+             
+             pant_msg = f"Pantolon tercihinde: Bel ölçünüze göre {w_inch}, Bacak boyunuza göre {l_inch} Boy önerilir."
+             report_lines.append(f"Pantolon Hesabı: Bel {u_waist}cm -> W{w_inch}, Boy {u_height}cm -> L{l_inch}")
+             
+             # Users often confuse 'Beden' with just Wait or just "Size".
+             # If the final_label is generic (M, L), we append this specific info.
+             fit_message = f"{final_label} ({w_inch} Beden, {l_inch} Boy)"
+             
+             # Override detail report message to be very specific as requested
+             # "ornegın pantolon bedenınızız bacak boyunuza gore 30 bedendır"
+             detailed_report += f"\n\nÖzel Tavsiye: Pantolon bedeniniz bacak boyunuza (ve belinize) göre {w_inch}-{l_inch} (W{w_inch}/L{l_inch}) olarak hesaplanmıştır."
+        
         if is_fallback:
             report_lines.append("Not: Markaya özel tablo bulunamadığı için genel beden tablosu (Universal) kullanıldı.")
             fit_message += " (Genel Beden)."

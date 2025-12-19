@@ -215,10 +215,14 @@ class MyApp extends StatelessWidget {
                   },
                   child: Builder(
                     builder: (context) {
+                      if (auth.isLoading && !auth.isAuthenticated) {
+                        return const Scaffold(
+                          body: Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
                       if (auth.isAuthenticated) {
-                        if (!auth.hasMeasurements) {
-                          return const MeasureFormScreen(isInitialSetup: true); // Force data entry
-                        }
                         return const HomeScreen();
                       }
                       return const LoginScreen();
