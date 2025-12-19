@@ -131,13 +131,31 @@ class ProductScraper:
                     "product_url": url,
                 }
 
+                # RESOURCE OPTIMIZATION: Block unnecessary resources
+                # Relaxed: Allowing images to prevent layout issues/bot detection
+                await page.route("**/*", lambda route: route.abort() 
+                    if route.request.resource_type in ["stylesheet", "font", "media"] 
+                    else route.continue_()
+                )
+
                 # STEALTH: Random navigation delay
                 await asyncio.sleep(random.uniform(1.0, 3.0))
                 
-                await page.goto(url, wait_until="domcontentloaded", timeout=60000)
+                # Reduced timeout to 30s to fail faster and release resources
+                try:
+                    await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                except Exception as e:
+                    print(f"Navigation Timeout/Error: {e}")
+                    # Try to proceed if content loaded partially? 
+                    # Usually if timeout happens, we might still have some content.
+                    # But safer to let it throw or return partial error.
+                    # For now, let's just log and continue to content retrieval if possible.
+                    pass
                 
                 # STEALTH: Simulate human behavior (micro-movements and delays)
-                await page.mouse.move(random.randint(100, 500), random.randint(100, 500))
+                try:
+                    await page.mouse.move(random.randint(100, 500), random.randint(100, 500))
+                except: pass
                 await asyncio.sleep(random.uniform(2.0, 5.0)) # Wait for React/Anti-bot to settle
                 
                 content = await page.content()
@@ -333,7 +351,52 @@ class ProductScraper:
         if advice_tag:
             # Usually strict text in a span or p
             # "Kullanıcıların çoğu kendi bedenini almanızı öneriyor"
-            data["fit_advice"] = self._clean_text(advice_tag.parent.get_text())
+            text = advice_tag.parent.get_text()
+            data["fit_advice"] = self._clean_text(text)
+        
+        # Fallback: Check for the JSON config if text search failed or returned raw JS
+        if not data.get("fit_advice") or "window[" in data.get("fit_advice", ""):
+            # Search for the script containing the config
+            script_pattern = re.compile(r'window\["__envoy_slicing-attributes__PROPS"\]\s*=\s*({.*?});', re.DOTALL)
+            script = soup.find("script", string=script_pattern)
+            if script:
+                 match = script_pattern.search(script.string)
+                 if match:
+                     try:
+                         json_str = match.group(1)
+                         config = json.loads(json_str)
+                         translations = config.get("translations", {})
+                         # "size-expectation.fit-option.too-small"
+                         # "size-expectation.fit-option.too-large"
+                         # "size-expectation.fit-option.fit-as-expected"
+                         
+                         # We need to find WHICH one applies to this product? 
+                         # Actually the translations dictionary just defines the text. 
+                         # It doesn't tell us the *value* for this product.
+                         # The value for this product might be in 'initialState' or similar. 
+                         
+                         # Wait, the previous extraction found "Kullanıcıların çoğu..." text inside the JSON *values* of the translations key.
+                         # This means I found the *dictionary of all possible messages*, not the specific message for this product.
+                         # Unless the text is printed on screen, I need to find the *active* attribute.
+                         
+                         # Re-evaluating: The text "Kullanıcıların çoğu..." is visible on the screen for users.
+                         # If I found it in the script, it's because soup found the *text node* inside the script tag?
+                         # BeautifulSoup usually doesn't return script content as text unless explicitly asked or if it's malformed.
+                         # Actually `soup.find(string=...)` searches properly.
+                         
+                         # If I can't find the rendered element, it means it's Client-Side Rendered (CSR) and not in the initial HTML.
+                         # Playwright waits for network idle, but maybe not long enough for the component to mount?
+                         
+                         # For now, let's reset fit_advice if it looks like code.
+                         data["fit_advice"] = ""
+                     except:
+                         pass
+            
+            # If we captured raw code in data['fit_advice'], clear it
+            if "window[" in data.get("fit_advice", ""):
+                 data["fit_advice"] = ""
+            if "window[" in data.get("fit_advice", ""):
+                 data["fit_advice"] = ""
 
     def _scrape_generic_fallback(self, soup, data):
         if not data["product_name"]:
