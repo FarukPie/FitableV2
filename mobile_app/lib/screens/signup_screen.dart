@@ -12,7 +12,7 @@ class SignupScreen extends StatefulWidget {
 
 class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
+  // final _usernameController = TextEditingController(); // Removed
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -33,7 +33,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    // _usernameController.dispose();
     _fullNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -47,11 +47,17 @@ class _SignupScreenState extends State<SignupScreen> {
 
     setState(() => _isLoading = true);
 
+    // debugPrint("DEBUG: Selected UI Gender: '$_gender'");
+    // debugPrint("DEBUG: Male string: '${AppLocalizations.of(context)!.genderMale}'");
+    // debugPrint("DEBUG: Female string: '${AppLocalizations.of(context)!.genderFemale}'");
+
+    // debugPrint("DEBUG: Selected UI Gender: '$_gender'");
+
     try {
       await Provider.of<AppProvider>(context, listen: false).register(
         _emailController.text.trim(),
         _passwordController.text,
-        _usernameController.text.trim(),
+        _emailController.text.trim().split('@')[0], 
         _fullNameController.text.trim(),
         _gender!,
         int.parse(_ageController.text.trim()),
@@ -184,12 +190,11 @@ class _SignupScreenState extends State<SignupScreen> {
                                             style: const TextStyle(color: Colors.white),
                                             decoration: _inputDecoration(l10n.genderLabel, Icons.people_outline),
                                             value: _gender,
-                                            items: genderOptions.map((String value) {
-                                              return DropdownMenuItem<String>(
-                                                value: value,
-                                                child: Text(value),
-                                              );
-                                            }).toList(),
+                                            items: [
+                                              DropdownMenuItem(value: 'male', child: Text(l10n.genderMale)),
+                                              DropdownMenuItem(value: 'female', child: Text(l10n.genderFemale)),
+                                              DropdownMenuItem(value: 'other', child: Text(l10n.genderOther)),
+                                            ],
                                             onChanged: (newValue) => setState(() => _gender = newValue),
                                             validator: (val) => val == null ? l10n.requiredError : null,
                                             icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
@@ -199,14 +204,14 @@ class _SignupScreenState extends State<SignupScreen> {
                                     ),
                                     const SizedBox(height: 16),
 
-                                    // Username
-                                    _buildTextField(
-                                      controller: _usernameController,
-                                      hint: l10n.usernameHint,
-                                      icon: Icons.alternate_email,
-                                      validator: (v) => v?.isEmpty == true ? l10n.requiredError : null,
-                                    ),
-                                    const SizedBox(height: 16),
+                                    // Username field removed
+                                    // _buildTextField(
+                                    //   controller: _usernameController,
+                                    //   hint: l10n.usernameHint,
+                                    //   icon: Icons.alternate_email,
+                                    //   validator: (v) => v?.isEmpty == true ? l10n.requiredError : null,
+                                    // ),
+                                    // const SizedBox(height: 16),
 
                                     // Email
                                     _buildTextField(
@@ -378,11 +383,11 @@ class _SignupScreenState extends State<SignupScreen> {
         suffixIcon: isPassword
             ? Padding(
                 padding: const EdgeInsets.only(right: 8.0),
-                child: IconButton(
-                  icon: Icon(
-                    isVisible ? Icons.link_off : Icons.link,
-                    color: _accentColor,
-                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      isVisible ? Icons.visibility_off : Icons.visibility,
+                      color: _accentColor,
+                    ),
                   onPressed: onVisibilityChanged,
                 ),
               )

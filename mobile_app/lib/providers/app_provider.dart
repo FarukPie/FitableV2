@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 import '../models/user_measurement.dart';
 import '../models/recommendation_result.dart';
@@ -23,24 +24,48 @@ class AppProvider with ChangeNotifier {
       final String? userId = prefs.getString('user_id');
       final String? userEmail = prefs.getString('user_email');
       final String? userGender = prefs.getString('user_gender');
+      final String? userUsername = prefs.getString('user_username'); 
+      final String? userFullName = prefs.getString('user_fullname');
       final String? accessToken = prefs.getString('access_token');
 
       if (userId != null && userEmail != null && accessToken != null) {
-        // Restore user session
+        // Restore user session initially from local storage
         _user = User(
           id: userId,
           email: userEmail,
-          gender: userGender ?? 'male', // Default or save/load accordingly
+          gender: userGender ?? 'male', 
+          username: userUsername,
+          fullName: userFullName,
           accessToken: accessToken,
         );
         
-        // Fetch measurements to ensure data consistency
+        // 1. Load local measurements
+        final localMeasurements = await _loadMeasurementsLocally();
+        if (localMeasurements != null) {
+            _hasMeasurements = true;
+        }
+
+        // 2. Refresh User Profile (Background)
+        // This ensures that if SharedPreferences has missing data (like missing fullName in old sessions),
+        // we fetch it from the server and update the session.
+        try {
+           // debugPrint("Refreshing user profile...");
+           final freshUser = await _apiService.getUserProfile(accessToken);
+           // debugPrint("Profile refreshed: ${freshUser.fullName}");
+           // Update in memory and persist
+           _user = freshUser;
+           await _saveUserSession(freshUser);
+        } catch (e) {
+           // If profile fetch fails (offline), we rely on the restored session.
+           debugPrint("Profile refresh failed: $e");
+        }
+
+        // 3. Fetch fresh measurements
         await fetchMeasurements(); 
       }
     } catch (e) {
       // debugPrint("Error checking login status: $e");
     } finally {
-      // Small delay to prevent flickering if it's too fast, or just finish
       _isLoading = false;
       notifyListeners();
     }
@@ -51,6 +76,8 @@ class AppProvider with ChangeNotifier {
     await prefs.setString('user_id', user.id);
     await prefs.setString('user_email', user.email);
     await prefs.setString('user_gender', user.gender);
+    if (user.username != null) await prefs.setString('user_username', user.username!);
+    if (user.fullName != null) await prefs.setString('user_fullname', user.fullName!);
     if (user.accessToken != null) {
         await prefs.setString('access_token', user.accessToken!);
     }
@@ -61,7 +88,10 @@ class AppProvider with ChangeNotifier {
     await prefs.remove('user_id');
     await prefs.remove('user_email');
     await prefs.remove('user_gender');
+    await prefs.remove('user_username');
+    await prefs.remove('user_fullname');
     await prefs.remove('access_token');
+    await _clearMeasurementsLocally();
   }
 
 
@@ -179,6 +209,9 @@ class AppProvider with ChangeNotifier {
 
     try {
       await _apiService.updateMeasurements(_user!.id, measurements);
+      // Update local cache on success
+      await _saveMeasurementsLocally(measurements);
+      _hasMeasurements = true; 
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -195,16 +228,63 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      // Try fetching from API
       final measurements = await _apiService.getMeasurements(_user!.id);
-      _hasMeasurements = measurements != null;
-      return measurements;
+      
+      if (measurements != null) {
+        // Success: Update state and cache
+        _hasMeasurements = true;
+        await _saveMeasurementsLocally(measurements);
+        return measurements;
+      } else {
+        // Server returned null (no measurements stored), so we don't have them.
+        _hasMeasurements = false;
+        return null;
+      }
     } catch (e) {
+      // API Failed (Network error etc)
+      // Attempt to return cached version if exists
+      final local = await _loadMeasurementsLocally();
+      if (local != null) {
+         _hasMeasurements = true;
+         // _error = null; // Do not surface network error if we have a valid fallback
+         return local;
+      }
+
       _error = e.toString();
       return null;
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> _saveMeasurementsLocally(UserMeasurement measurements) async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_measurements', jsonEncode(measurements.toJson()));
+      } catch (e) {
+        // Ignore cache save errors
+      }
+  }
+
+  Future<UserMeasurement?> _loadMeasurementsLocally() async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final String? jsonStr = prefs.getString('user_measurements');
+        if (jsonStr != null) {
+            final Map<String, dynamic> data = jsonDecode(jsonStr);
+            return UserMeasurement.fromJson(data);
+        }
+      } catch (e) {
+         return null;
+      }
+      return null;
+  }
+
+  Future<void> _clearMeasurementsLocally() async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('user_measurements');
   }
 
   Future<void> addToCloset(RecommendationResult result, String productUrl) async {

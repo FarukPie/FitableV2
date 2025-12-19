@@ -61,7 +61,7 @@ async def signup(user: UserRegister):
                 "user": {
                     "id": response.user.id,
                     "email": response.user.email,
-                    # Add other metadata needed by frontend if any
+                    "user_metadata": response.user.user_metadata
                 }
             }
         else:
@@ -90,7 +90,7 @@ async def login(user: UserLogin):
                 "user": {
                     "id": response.user.id,
                     "email": response.user.email,
-                    # Add other fields if needed from response.user.user_metadata
+                    "user_metadata": response.user.user_metadata
                 }
             }
         else:
@@ -100,13 +100,39 @@ async def login(user: UserLogin):
         print(f"Login Error: {e}")
         raise HTTPException(status_code=401, detail=str(e))
 
-@router.post("/logout")
-async def logout():
-    try:
-        supabase.auth.sign_out()
-        return {"status": "success"}
     except Exception as e:
          raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/me")
+async def get_user_me(token: str = Depends(lambda x: x)):
+    # This is a bit of a hack since we are not using a proper dependency for Bearer token extraction
+    # Normally we would use fastapi.security.HTTPBearer.
+    # But let's assume the frontend sends the token in the header and we use Supabase to validate it.
+    pass 
+
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+security = HTTPBearer()
+
+@router.get("/me")
+async def get_user_me(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    try:
+        token = credentials.credentials
+        response = supabase_anon.auth.get_user(token)
+        
+        if response.user:
+            return {
+                "status": "success",
+                "user": {
+                    "id": response.user.id,
+                    "email": response.user.email,
+                    "user_metadata": response.user.user_metadata
+                }
+            }
+        else:
+             raise HTTPException(status_code=401, detail="Invalid token")
+    except Exception as e:
+        print(f"Get Me Error: {e}")
+        raise HTTPException(status_code=401, detail=str(e))
 
 class UserGoogleLogin(BaseModel):
     id_token: str

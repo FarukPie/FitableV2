@@ -152,6 +152,81 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (!widget.isInitialSetup) ...[
+                        Consumer<AppProvider>(
+                            builder: (context, provider, _) { 
+                                final fullName = provider.user?.fullName;
+                                final username = provider.user?.username;
+                                final emailName = provider.user?.email.split('@')[0] ?? "Kullanıcı";
+                                
+                                // Priority: Full Name > Username > Email Name > "Kullanıcı"
+                                final displayName = (fullName != null && fullName.isNotEmpty) 
+                                    ? fullName 
+                                    : (username != null && username.isNotEmpty 
+                                        ? username 
+                                        : emailName);
+                                    
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 32.0, top: 8.0),
+                                  child: Column(
+                                    children: [
+                                       Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: Theme.of(context).primaryColor, width: 2),
+                                          ),
+                                           child: CircleAvatar(
+                                            radius: 40,
+                                            backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                                            child: Builder(
+                                              builder: (context) {
+                                                final rawGender = provider.user?.gender;
+                                                // debugPrint("Avatar Debug: Raw Gender: $rawGender");
+                                                
+                                                final gender = rawGender?.toLowerCase() ?? 'male';
+                                                IconData iconData;
+                                                Color iconColor;
+
+                                                if (gender.contains('erkek') || gender.contains('male')) {
+                                                  iconData = Icons.man;
+                                                  iconColor = Colors.blue;
+                                                } else if (gender.contains('kadın') || gender.contains('kadin') || gender.contains('female') || gender.contains('woman')) {
+                                                  iconData = Icons.woman;
+                                                  iconColor = Colors.pink;
+                                                } else {
+                                                  iconData = Icons.transgender;
+                                                  iconColor = Colors.purple;
+                                                }
+
+                                                return Icon(
+                                                  iconData,
+                                                  size: 50,
+                                                  color: iconColor,
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                       const SizedBox(height: 16),
+                                       Text(
+                                          "Merhaba, $displayName",
+                                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color),
+                                       ),
+                                       if (provider.user?.email != null)
+                                          Padding(
+                                            padding: const EdgeInsets.only(top: 4.0),
+                                            child: Text(
+                                              provider.user!.email,
+                                              style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6)),
+                                            ),
+                                          ),
+                                    ],
+                                  ),
+                                );
+                            }
+                        ),
+                    ],
                     if (widget.isInitialSetup) ...[
                       Text(
                         AppLocalizations.of(context)!.measureWelcome,
@@ -715,7 +790,7 @@ class _InstructionDialog extends StatefulWidget {
 
 class _InstructionDialogState extends State<_InstructionDialog> {
   bool _canClose = false;
-  int _secondsRemaining = 5;
+  int _secondsRemaining = 3;
   Timer? _timer;
 
   @override

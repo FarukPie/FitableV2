@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/user_measurement.dart';
 import '../models/recommendation_result.dart';
@@ -10,6 +11,37 @@ class ApiService {
   // Use 10.0.2.2 ONLY for Android Emulator.
   static const String baseUrl = 'https://fitablev2.onrender.com';
   // static const String baseUrl = 'http://127.0.0.1:8000';
+
+  Future<User> getUserProfile(String token) async {
+    final url = Uri.parse('$baseUrl/auth/me');
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final user = User.fromJson(data);
+         // Inject the access token back into the user object as /me usually doesn't return it
+        return User(
+            id: user.id,
+            email: user.email,
+            gender: user.gender,
+            username: user.username,
+            fullName: user.fullName,
+            accessToken: token
+        );
+      } else {
+        throw Exception('Failed to load user profile');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
 
   Future<void> updateMeasurements(String userId, UserMeasurement measurements) async {
     final url = Uri.parse('$baseUrl/update-measurements'); 
@@ -82,6 +114,7 @@ class ApiService {
 
   Future<User> register(String email, String password, String username, String fullName, String gender, int age) async {
     final url = Uri.parse('$baseUrl/auth/signup');
+    debugPrint("DEBUG: ApiService Register calling with Gender: '$gender'");
     try {
       final response = await http.post(
         url,
