@@ -9,15 +9,10 @@ class ApiService {
   // Use 127.0.0.1 for Windows/Web testing. 
   // Use 10.0.2.2 ONLY for Android Emulator.
   static const String baseUrl = 'https://fitablev2.onrender.com';
+  // static const String baseUrl = 'http://127.0.0.1:8000';
 
   Future<void> updateMeasurements(String userId, UserMeasurement measurements) async {
-    final url = Uri.parse('$baseUrl/update-measurements'); // Endpoint needs to facilitate this
-    // For now we assume this endpoint exists or we mock it.
-    // Ideally, we'd interact with Supabase directly if backend doesn't proxy, 
-    // but requirements said "POST /update-measurements".
-    
-    // NOTE: Backend hasn't implemented /update-measurements yet, 
-    // but we build the client side as requested.
+    final url = Uri.parse('$baseUrl/update-measurements'); 
     try {
       final response = await http.post(
         url,
@@ -32,7 +27,7 @@ class ApiService {
         throw Exception('Failed to update measurements: ${response.body}');
       }
     } catch (e) {
-      print("Error updating measurements: $e");
+      // debugPrint("Error updating measurements: $e");
       rethrow;
     }
   }
@@ -57,10 +52,10 @@ class ApiService {
         throw Exception('Failed to get recommendation: ${response.body}');
       }
     } catch (e) {
-      print("Error getting recommendation: $e");
       rethrow;
     }
   }
+
   Future<User> login(String email, String password) async {
     final url = Uri.parse('$baseUrl/auth/login');
     try {
@@ -85,8 +80,6 @@ class ApiService {
     }
   }
 
-
-
   Future<User> register(String email, String password, String username, String fullName, String gender, int age) async {
     final url = Uri.parse('$baseUrl/auth/signup');
     try {
@@ -109,10 +102,6 @@ class ApiService {
         if (data['access_token'] != null && data['user'] != null) {
           return User.fromJson(data);
         } else {
-             // Fallback if backend didn't return tokens (shouldn't happen with new backend)
-             // But we need to return a User. MOCK IT or throw?
-             // Prompt says "auto-login". If backend fails to log in, we should probably just finish.
-             // But signature changed to Future<User>.
              if (data['user'] != null) {
                  return User(
                    id: data['user']['id'], 
@@ -130,6 +119,7 @@ class ApiService {
       rethrow;
     }
   }
+
   Future<UserMeasurement?> getMeasurements(String userId) async {
     final url = Uri.parse('$baseUrl/measurements/$userId');
     try {
@@ -145,13 +135,10 @@ class ApiService {
         throw Exception('Failed to load measurements');
       }
     } catch (e) {
-      print("Error fetching measurements: $e");
-      // Return null or rethrow? 
-      // If error, maybe user has no data or network error. 
-      // Safe to return null for "no data found" but rethrow for network.
       return null;
     }
   }
+
   Future<List<HistoryItem>> getHistory(String userId) async {
     final url = Uri.parse('$baseUrl/history/$userId');
     try {
@@ -159,16 +146,17 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
-        final List<dynamic> data = jsonResponse['data'];
+        // ignore: unnecessary_cast
+        final List<dynamic> data = jsonResponse['data'] as List<dynamic>;
         return data.map((item) => HistoryItem.fromJson(item)).toList();
       } else {
         throw Exception('Failed to load history');
       }
     } catch (e) {
-      print("Error fetching history: $e");
       return [];
     }
   }
+
   Future<void> addToCloset(RecommendationResult result, String userId, String productUrl) async {
     final url = Uri.parse('$baseUrl/history/add'); 
     try {
@@ -181,7 +169,7 @@ class ApiService {
           'brand': result.brand,
           'product_url': productUrl,
           'image_url': result.imageUrl,
-          'price': '', // Assuming price is not available in RecommendationResult yet
+          'price': '', 
           'recommended_size': result.recommendedSize,
           'confidence_score': result.confidenceScore,
         }),
@@ -191,7 +179,6 @@ class ApiService {
         throw Exception('Failed to add to closet: ${response.body}');
       }
     } catch (e) {
-      print("Error adding to closet: $e");
       rethrow;
     }
   }
@@ -205,9 +192,20 @@ class ApiService {
         throw Exception('Failed to delete item: ${response.body}');
       }
     } catch (e) {
-      print("Error deleting history item: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> deleteAccount(String userId) async {
+    final url = Uri.parse('$baseUrl/auth/delete/$userId');
+    try {
+      final response = await http.delete(url).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to delete account: ${response.body}');
+      }
+    } catch (e) {
       rethrow;
     }
   }
 }
-

@@ -38,7 +38,7 @@ class AppProvider with ChangeNotifier {
         await fetchMeasurements(); 
       }
     } catch (e) {
-      print("Error checking login status: $e");
+      // debugPrint("Error checking login status: $e");
     } finally {
       // Small delay to prevent flickering if it's too fast, or just finish
       _isLoading = false;
@@ -73,6 +73,7 @@ class AppProvider with ChangeNotifier {
   bool _hasMeasurements = false;
   Locale _locale = const Locale('tr'); // Default to Turkish
   ThemeMode _themeMode = ThemeMode.dark; // Default to Dark
+  bool _isNewRegistration = false;
 
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -83,6 +84,7 @@ class AppProvider with ChangeNotifier {
   ThemeMode get themeMode => _themeMode;
   bool get isAuthenticated => _user != null;
   String? get userId => _user?.id;
+  bool get isNewRegistration => _isNewRegistration;
 
   void clearResult() {
     _result = null;
@@ -101,10 +103,6 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
   }
 
-
-
-
-
   Future<void> login(String email, String password) async {
     _isLoading = true;
     _error = null;
@@ -116,6 +114,7 @@ class AppProvider with ChangeNotifier {
       // Check if user has measurements
       final measurements = await _apiService.getMeasurements(_user!.id);
       _hasMeasurements = measurements != null;
+      _isNewRegistration = false; // Existing user login
     } catch (e) {
       _error = e.toString();
       rethrow;
@@ -135,6 +134,7 @@ class AppProvider with ChangeNotifier {
       await _saveUserSession(_user!);
       // New user has no measurements yet.
       _hasMeasurements = false; 
+      _isNewRegistration = true; // Flag as new user for tutorial
     } catch (e) {
       _error = e.toString();
       rethrow;
@@ -179,8 +179,6 @@ class AppProvider with ChangeNotifier {
 
     try {
       await _apiService.updateMeasurements(_user!.id, measurements);
-      _hasMeasurements = true;
-      print("Saved measurements for ${_user!.id}: ${measurements.toJson()}");
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -188,6 +186,7 @@ class AppProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+  
   Future<UserMeasurement?> fetchMeasurements() async {
     if (!isAuthenticated) return null;
 
@@ -213,10 +212,7 @@ class AppProvider with ChangeNotifier {
 
     try {
       await _apiService.addToCloset(result, _user!.id, productUrl);
-      // Optional: Add to local list immediately?
-      // _history.add(...); notifyListeners();
     } catch (e) {
-      print("Error adding to closet provider: $e");
       rethrow;
     }
   }
@@ -227,7 +223,6 @@ class AppProvider with ChangeNotifier {
     try {
       return await _apiService.getHistory(_user!.id);
     } catch (e) {
-      print("Error fetching history provider: $e");
       return [];
     }
   }
@@ -239,7 +234,18 @@ class AppProvider with ChangeNotifier {
       await _apiService.deleteHistoryItem(itemId);
       notifyListeners(); // Notify listeners if any other part depends on it
     } catch (e) {
-      print("Error removing form closet provider: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> deleteAccount() async {
+    if (!isAuthenticated) return;
+
+    try {
+      await _apiService.deleteAccount(_user!.id);
+      // Clear session locally
+      logout();
+    } catch (e) {
       rethrow;
     }
   }

@@ -9,6 +9,11 @@ import 'result_screen.dart';
 import 'package:size_recommendation_app/l10n/app_localizations.dart';
 import 'dart:async';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/tutorial_helper.dart';
+
+import 'package:flutter/foundation.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,31 +24,67 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _urlController = TextEditingController();
-  late StreamSubscription _intentDataStreamSubscription;
+  StreamSubscription? _intentDataStreamSubscription;
+  
+  final GlobalKey _closetKey = GlobalKey();
+  final GlobalKey _queryBarKey = GlobalKey();
+  final GlobalKey _profileKey = GlobalKey();
+  
+  TutorialCoachMark? _tutorialCoachMark;
+  List<TargetFocus> _targets = [];
 
   @override
   void initState() {
     super.initState();
     // For sharing or opening while app is running in the background
-    _intentDataStreamSubscription = ReceiveSharingIntent.instance.getMediaStream().listen((List<SharedMediaFile> value) {
-      if (value.isNotEmpty && value.first.type == SharedMediaType.text) {
-         _handleSharedText(value.first.path);
-      }
-    }, onError: (err) {
-      print("getIntentDataStream error: $err");
-    });
+    if (!kIsWeb) {
+      _intentDataStreamSubscription = ReceiveSharingIntent.instance.getMediaStream().listen((List<SharedMediaFile> value) {
+        if (value.isNotEmpty && value.first.type == SharedMediaType.text) {
+           _handleSharedText(value.first.path);
+        }
+      }, onError: (err) {
+        print("getIntentDataStream error: $err");
+      });
 
-    // For sharing or opening while app is closed
-    ReceiveSharingIntent.instance.getInitialMedia().then((List<SharedMediaFile> value) {
-      if (value.isNotEmpty && value.first.type == SharedMediaType.text) {
-         _handleSharedText(value.first.path);
-      }
+      // For sharing or opening while app is closed
+      ReceiveSharingIntent.instance.getInitialMedia().then((List<SharedMediaFile> value) {
+        if (value.isNotEmpty && value.first.type == SharedMediaType.text) {
+           _handleSharedText(value.first.path);
+        }
+      });
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkMandatoryMeasurements();
     });
+  }
+
+  Future<void> _checkMandatoryMeasurements() async {
+    final provider = Provider.of<AppProvider>(context, listen: false);
+    
+    // Ensure we have the latest status
+    if (!provider.hasMeasurements) {
+       // Force navigation to Measure Form
+       await Navigator.push(
+         context,
+         MaterialPageRoute(
+             builder: (_) => const MeasureFormScreen(isInitialSetup: true)
+         ),
+       );
+       
+       // After returning, re-check (though UI logic should have handled saving)
+       // Then trigger tutorial
+       _checkAndShowTutorial();
+    } else {
+       // User already has measurements, just check tutorial
+       _checkAndShowTutorial();
+    }
   }
 
   @override
   void dispose() {
-    _intentDataStreamSubscription.cancel();
+    _urlController.dispose();
+    _intentDataStreamSubscription?.cancel();
     super.dispose();
   }
 
@@ -63,6 +104,60 @@ class _HomeScreenState extends State<HomeScreen> {
        });
     }
   }
+
+  Future<void> _checkAndShowTutorial() async {
+    final provider = Provider.of<AppProvider>(context, listen: false);
+    
+    // Only show if this is a fresh registration session
+    if (!provider.isNewRegistration) return;
+    
+    // Also use a user-specific key to ensure it really only shows once per user
+    final userId = provider.userId;
+    if (userId == null) return;
+    
+    final prefs = await SharedPreferences.getInstance();
+    final hasShown = prefs.getBool('tutorial_shown_$userId') ?? false;
+
+    if (!hasShown) {
+      if (mounted) _showTutorial();
+    }
+  }
+
+  void _showTutorial() {
+    _tutorialCoachMark = TutorialCoachMark(
+      targets: _targets,
+      colorShadow: Colors.black,
+      textSkip: "Sıra",
+      paddingFocus: 10,
+      opacityShadow: 0.8,
+      onFinish: () {
+        print("Tutorial finished");
+        _markTutorialShown();
+      },
+      onClickTarget: (target) {
+        print("Target clicked");
+      },
+      onSkip: () {
+        print("Tutorial skipped");
+        _markTutorialShown();
+        return true;
+      },
+      onClickOverlay: (target) {
+        print("Overlay clicked");
+      },
+    )..show(context: context);
+  }
+
+  Future<void> _markTutorialShown() async {
+    final provider = Provider.of<AppProvider>(context, listen: false);
+    final userId = provider.userId;
+    if (userId == null) return;
+    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('tutorial_shown_$userId', true);
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text(AppLocalizations.of(context)!.appTitle),
         actions: [
           IconButton(
+            key: _closetKey,
             icon: const Icon(Icons.checkroom_rounded),
             tooltip: AppLocalizations.of(context)!.myClosetTooltip,
             onPressed: () => Navigator.push(
@@ -102,17 +198,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           IconButton(
+            key: _profileKey,
             icon: const Icon(Icons.person_rounded),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const MeasureFormScreen()),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            onPressed: () {
-               Provider.of<AppProvider>(context, listen: false).logout();
-            },
           ),
         ],
       ),
@@ -177,6 +268,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 48),
         Container(
+          key: _queryBarKey,
           decoration: BoxDecoration(
             boxShadow: [
               BoxShadow(

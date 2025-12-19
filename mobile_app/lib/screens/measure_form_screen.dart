@@ -37,12 +37,7 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
   double _estimatedHandSpan = 0.0;
   bool _isLoading = false;
 
-  // Colors from Theme
-  static const Color _backgroundColor = Color(0xFF121212);
-  static const Color _cardColor = Color(0xFF1E1E1E);
-  static const Color _accentColor = Color(0xFF2962FF); // Electric Blue
-  static const Color _inputFillColor = Color(0xFF252525);
-  static const Color _textSecondary = Colors.grey;
+
 
   void _calculateHandSpan() {
     final height = double.tryParse(_heightController.text);
@@ -382,6 +377,101 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                       crossFadeState: _showFullForm ? CrossFadeState.showSecond : CrossFadeState.showFirst,
                       duration: const Duration(milliseconds: 500),
                     ),
+                    
+                    if (_showFullForm && !widget.isInitialSetup) ...[
+                      const SizedBox(height: 32),
+                      const Divider(color: Colors.grey),
+                      const SizedBox(height: 16),
+                      
+                      // Logout Button
+                      Container(
+                        width: double.infinity,
+                        height: 55,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.white.withOpacity(0.1),
+                              Colors.white.withOpacity(0.05),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          border: Border.all(color: Colors.white.withOpacity(0.2)),
+                        ),
+                        child: InkWell(
+                          onTap: () {
+                             Provider.of<AppProvider>(context, listen: false).logout();
+                             Navigator.pop(context); 
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.logout_rounded, color: Colors.white),
+                              const SizedBox(width: 8),
+                              const Text(
+                                "Çıkış Yap",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Delete Account Button
+                      Container(
+                        width: double.infinity,
+                        height: 55,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.red.shade900.withOpacity(0.8),
+                              Colors.red.shade600,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.red.withOpacity(0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: ElevatedButton(
+                          onPressed: _showDeleteConfirmation,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.delete_forever_rounded, color: Colors.white),
+                              SizedBox(width: 8),
+                              Text(
+                                "Hesabı Sil",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -529,7 +619,9 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                content: Text(AppLocalizations.of(context)!.measurementsSaved),
                backgroundColor: Colors.green,
              ));
-        if (!widget.isInitialSetup) {
+        // Always pop to return to the previous screen (Home), 
+        // even if it was initial setup (because we push it from Home now)
+        if (Navigator.canPop(context)) {
           Navigator.pop(context);
         }
       });
@@ -565,6 +657,50 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
       barrierDismissible: false,
       builder: (context) => const _InstructionDialog(),
     );
+  }
+
+  void _showDeleteConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).cardTheme.color,
+        title: const Text("Hesabı Sil", style: TextStyle(color: Colors.red)),
+        content: const Text(
+          "Hesabınızı ve tüm verilerinizi kalıcı olarak silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("İptal"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+              _performDeletion();
+            },
+            child: const Text("Sil", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performDeletion() async {
+    setState(() => _isLoading = true);
+    try {
+      await Provider.of<AppProvider>(context, listen: false).deleteAccount();
+      if (mounted) {
+         Navigator.pop(context); // Go back to Home/Login
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Hata: $e"), backgroundColor: Colors.red),
+        );
+        setState(() => _isLoading = false);
+      }
+    }
   }
 }
 
@@ -611,10 +747,10 @@ class _InstructionDialogState extends State<_InstructionDialog> {
       canPop: false,
       child: AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: const Color(0xFF1E1E1E),
-        title: const Row(
+        backgroundColor: Theme.of(context).cardTheme.color,
+        title: Row(
           children: [
-            Icon(Icons.info_outline, color: Color(0xFF2962FF)), // Using accentColor
+            Icon(Icons.info_outline, color: Theme.of(context).primaryColor), // Using accentColor
             SizedBox(width: 10),
             Text("Ölçüm Tavsiyesi", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ],

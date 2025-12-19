@@ -138,3 +138,15 @@ async def google_login(data: UserGoogleLogin):
     except Exception as e:
         print(f"Google Login Error: {e}")
         raise HTTPException(status_code=401, detail=str(e))
+
+@router.delete("/delete/{user_id}")
+async def delete_user(user_id: str):
+    try:
+        # Use Supabase Admin API to delete user
+        print(f"DEBUG: Attempting to delete user {user_id}")
+        response = supabase_admin.auth.admin.delete_user(user_id)
+        print(f"DEBUG: Delete User Response: {response}")
+        return {"status": "success", "message": "User deleted successfully"}
+    except Exception as e:
+        print(f"Delete User Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

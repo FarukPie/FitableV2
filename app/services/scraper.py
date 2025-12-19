@@ -27,7 +27,11 @@ class ProductScraper:
                 parts.pop(0)
             
             if parts:
-                return parts[0].capitalize()
+                capitalized = parts[0].capitalize()
+                # Normalization for Pull&Bear
+                if "pullandbear" in capitalized.lower():
+                    return "Pullandbear"
+                return capitalized
             return "Unknown"
         except:
             return "Unknown"
@@ -211,6 +215,8 @@ class ProductScraper:
                     self._scrape_zara_specific(soup, data)
                 elif brand == "Trendyol":
                     self._scrape_trendyol_specific(soup, data)
+                elif brand == "Pullandbear":
+                    self._scrape_pullandbear_specific(soup, data)
                     
                 # 4. Generic Fallback (Last Resort)
                 self._scrape_generic_fallback(soup, data)
@@ -234,6 +240,35 @@ class ProductScraper:
                     else:
                         # Ensure string
                         data[k] = str(v)
+                
+                # FINAL CLEANUP: Product Name
+                # User wants to remove .html, .htm, and potential SKU codes from the name
+                if data["product_name"]:
+                    from urllib.parse import unquote
+                    name = unquote(data["product_name"]) # Decode URL encoding (e.g., %C4%B1 -> ı)
+                    
+                    # 1. Remove .html / .htm extension
+                    name = re.sub(r'\.html?$', '', name, flags=re.IGNORECASE)
+                    
+                    # 2. General cleanup of common URL separators/noise if we fell back to URL
+                    name = name.replace("-", " ").replace("_", " ")
+                    
+                    # 3. Remove trailing SKU-like patterns (e.g. P06019390, 8484/123, L07550518)
+                    # Expanded Regex: 
+                    # - Space + [A-Z0-9]+ (at least 5 chars) at end
+                    # - Space + Digit-Digit pattern (REF codes)
+                    name = re.sub(r'\s+[A-Z0-9]{5,}$', '', name)
+                    name = re.sub(r'\s+\d+/\d+/?$', '', name) # Reference codes like 8484/123
+                    
+                    # 4. Remove purely numeric trailing words (often prices or IDs stuck to name)
+                    name = re.sub(r'\s+\d+$', '', name)
+
+                    # 5. Capitalize nicely
+                    name = name.strip()
+                    # Fix artifacts like repeated spaces
+                    name = re.sub(r'\s+', ' ', name)
+                    
+                    data["product_name"] = name.title() # Ensure nice casing
 
                 return data
 
@@ -318,6 +353,16 @@ class ProductScraper:
                 if tag:
                     data["price"] = self._clean_text(tag.get_text())
                     break
+        
+        # Zara Image Extraction
+        if not data["image_url"]:
+             # Zara often uses picture tags or lazy loaded images in a list
+             # 1. Main Media Image
+             for sel in [".media-image__image", "img.media-image__image", ".product-detail-view__main-image", "ul.product-detail-images__list img"]:
+                 tag = soup.select_one(sel)
+                 if tag and tag.get("src"):
+                     data["image_url"] = tag.get("src")
+                     break
 
     def _scrape_trendyol_specific(self, soup, data):
         # Trendyol specific selectors
@@ -339,9 +384,41 @@ class ProductScraper:
         
         if not data["image_url"]:
              # Often .base-product-image img
-             tag = soup.select_one(".base-product-image img")
-             if tag:
-                 data["image_url"] = tag.get("src")
+             # Added: .gallery-container img, .product-slide img for better coverage
+             for sel in [".base-product-image img", ".gallery-container img", ".product-slide img", ".gallery-modal-content img"]:
+                 tag = soup.select_one(sel)
+                 if tag:
+                     src = tag.get("src")
+                     if src:
+                        data["image_url"] = src
+                        break
+
+    def _scrape_pullandbear_specific(self, soup, data):
+        # Pull & Bear Specific Selectors
+        if not data["product_name"]:
+             for sel in ["h1.product-name", ".product-detail-info__name", "h1", ".pdp-title"]:
+                 tag = soup.select_one(sel)
+                 if tag:
+                     data["product_name"] = self._clean_text(tag.get_text())
+                     break
+        
+        if not data["price"]:
+             for sel in [".price-current", ".product-detail-info__price", ".price__amount", ".current-price"]:
+                 tag = soup.select_one(sel)
+                 if tag:
+                     data["price"] = self._clean_text(tag.get_text())
+                     break
+        
+        if not data["image_url"]:
+             # P&B usually has grid images
+             # .product-image img, .slider-image img
+             for sel in [".product-image img", ".carousel-item img", "img.c-product-card__image", ".product-detail-images img"]:
+                 tag = soup.select_one(sel)
+                 if tag:
+                      src = tag.get("src")
+                      if src:
+                         data["image_url"] = src
+                         break
 
         # Extract Fit Advice (Orange Box)
         # Search for text "Kullanıcıların çoğu"
@@ -402,6 +479,59 @@ class ProductScraper:
         if not data["product_name"]:
             tag = soup.find("title")
             if tag: data["product_name"] = self._clean_text(tag.get_text())
+        
+        # Last Resort: Find ANY substantial image
+        if not data["image_url"]:
+            self._find_best_fallback_image(soup, data)
+
+    def _find_best_fallback_image(self, soup, data):
+        """
+        Scans all <img> tags, scores them based on likely product attributes 
+        (size, position, classes), and returns the best candidate.
+        """
+        images = soup.find_all("img")
+        best_img = ""
+        max_score = 0
+        
+        for img in images:
+            src = img.get("src")
+            if not src or src.startswith("data:") or "icon" in src or "logo" in src:
+                continue
+            
+            score = 0
+            
+            # Helper to check attributes
+            width = img.get("width", "0")
+            height = img.get("height", "0")
+            try:
+                w = int(width.replace("px","")) if width and width.isdigit() else 0
+                h = int(height.replace("px","")) if height and height.isdigit() else 0
+            except:
+                w, h = 0, 0
+                
+            # Filter tiny images
+            if 0 < w < 100 or 0 < h < 100:
+                continue
+
+            # Heuristics
+            if "product" in str(img.get("class", "")).lower(): score += 5
+            if "gallery" in str(img.get("class", "")).lower(): score += 3
+            if "main" in str(img.get("class", "")).lower(): score += 3
+            if "detail" in str(img.get("class", "")).lower(): score += 2
+            
+            # Prefer JPG/WEBP over PNG (logos are often PNG)
+            if ".jpg" in src or ".jpeg" in src or ".webp" in src: score += 1
+            
+            # Avoid common non-product terms
+            if "avatar" in src or "user" in src or "banner" in src: score -= 10
+            
+            if score > max_score:
+                max_score = score
+                best_img = src
+        
+        if best_img:
+            data["image_url"] = best_img
+            print(f"Fallback Image Found (Score {max_score}): {best_img}")
 
     def _extract_fabric_composition(self, soup, data):
         """
