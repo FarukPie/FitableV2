@@ -101,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Expanded(
                           flex: isDesktop ? 4 : 1, 
                           child: Padding(
-                            padding: const EdgeInsets.fromLTRB(40, 40, 40, 40),
+                            padding: EdgeInsets.fromLTRB(40, isDesktop ? 40 : 100, 40, 40),
                             child: Form(
                               key: _formKey,
                               child: Column(

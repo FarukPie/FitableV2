@@ -150,7 +150,7 @@ class SizeRecommender:
         # 0. Fetch Data
         measurements = self._get_user_measurements(user_id)
         if not measurements:
-            return {"error": "User measurements not found"}
+            return {"error": "Kullanıcı ölçüleri bulunamadı."}
         
         u_height = measurements.get("height") or 175
         u_weight = measurements.get("weight") or 75
@@ -171,7 +171,7 @@ class SizeRecommender:
                  "confidence_score": 0.0,
                  "fit_message": "Bu giyilebilir bir ürün değildir veya desteklenmeyen bir kategoridir.",
                  "detailed_report": "Sistem bu ürünün bir kıyafet olduğunu doğrulayamadı.",
-                 "warning": "Non-wearable detected"
+                 "warning": "Giyilebilir ürün tespit edilemedi"
              }
         
         print(f"DEBUG: Inputs - Height: {u_height}, Weight: {u_weight}, Shape: {body_shape}")
@@ -195,7 +195,7 @@ class SizeRecommender:
             is_fallback = True
             
         if not size_chart:
-             return {"error": "Could not determine size standards."}
+             return {"error": "Beden standartları belirlenemedi."}
 
         # 2. Detect Fit Type
         fit_type = self._detect_fit_type(description)
@@ -289,7 +289,7 @@ class SizeRecommender:
         target_chest = u_chest
         if target_chest <= 0 and u_shoulder > 0:
              target_chest = u_shoulder * 0.85 
-             reasons.append(f"Chest estimated from Shoulder ({u_shoulder}cm).")
+             reasons.append(f"Omuz ölçüsünden göğüs tahmini yapıldı ({u_shoulder}cm).")
 
         if target_chest > 0:
             target_chest += ease_allowance
@@ -301,7 +301,7 @@ class SizeRecommender:
         target_waist = u_waist
         if target_waist <= 0 and u_height > 0 and u_weight > 0:
             target_waist = self._estimate_waist(u_height, u_weight)
-            reasons.append(f"Waist estimated from Height/Weight ({target_waist:.1f}cm).")
+            reasons.append(f"Boy/Kilo ile bel tahmini yapıldı ({target_waist:.1f}cm).")
         
         if target_waist > 0:
              target_waist += (ease_allowance * 0.5)
@@ -349,7 +349,7 @@ class SizeRecommender:
         if valid_indices:
             final_idx = max(valid_indices)
         else:
-             return {"error": "Could not determine size from measurements."}
+             return {"error": "Ölçülerden beden belirlenemedi."}
         
         # --- Body Shape Adjustments ---
         shape_msg = ""
@@ -368,7 +368,7 @@ class SizeRecommender:
                  # But check if fit_type is 'slim'. If slim, waist might still be tight?
                  # Even so, user says "Bele takılma".
                  final_idx = chest_idx
-                 shape_msg = "Body Shape (Inverted Triangle): Prioritized Chest/Shoulder measurement over Waist."
+                 shape_msg = "Vücut Şekli (Ters Üçgen): Bel yerine Omuz/Göğüs önceliklendirildi."
 
         # Logic B: Oval (Elma) -> Wide Waist
         # "Oval": Bel ölçüsünü "Kritik Kısıt" yap.
@@ -406,23 +406,23 @@ class SizeRecommender:
                     return s.get("size_label")
             return labels.get(idx, "Unknown")
 
-        # Analyze Report
+         # Analyze Report
         # Chest
         c_idx = candidate_indices["chest"]
         if c_idx > -1:
-            report_lines.append(f"Chest/Shoulder: Fits in {get_label(c_idx)}.")
+            report_lines.append(f"Göğüs/Omuz: {get_label(c_idx)} bedenine sığıyor.")
         
         # Waist
         w_idx = candidate_indices["waist"]
         if w_idx > -1:
-            report_lines.append(f"Waist: Fits in {get_label(w_idx)}.")
+            report_lines.append(f"Bel: {get_label(w_idx)} bedenine sığıyor.")
             if w_idx == final_idx and w_idx > c_idx and c_idx > -1:
-                report_lines.append(f"(!) Your waist requires {get_label(w_idx)}, pushing the size up.")
+                report_lines.append(f"(!) Bel ölçünüz {get_label(w_idx)} gerektiriyor, bu yüzden beden büyütüldü.")
         
         # Weight
         wt_idx = candidate_indices["weight"]
         if wt_idx > -1:
-            report_lines.append(f"Weight ({u_weight}kg): Suggests at least {get_label(wt_idx)}.")
+            report_lines.append(f"Kilo ({u_weight}kg): En az {get_label(wt_idx)} öneriyor.")
             
         # Adjustments
         adjustment_msg = ""
@@ -431,7 +431,7 @@ class SizeRecommender:
              # If constrained by Waist (belly) and Slim Fit -> Size Up
              if w_idx == final_idx:
                  final_idx += 1
-                 adjustment_msg = "Sizing up (+1) for Slim Fit constraint on Waist."
+                 adjustment_msg = "Dar Kalıp (Slim Fit) ve Bel kısıtı nedeniyle bir beden büyütüldü (+1)."
         elif fit_type == "oversize":
              # If constrained by Weight (not bone structure) -> Don't downsize? 
              # Or if final_idx determined by Chest/Shoulder, maybe we can downsize?
@@ -441,24 +441,24 @@ class SizeRecommender:
              pass
 
         if adjustment_msg:
-             report_lines.append(f"Adjustment: {adjustment_msg}")
+             report_lines.append(f"Düzenleme: {adjustment_msg}")
               
         # --- Fit Advice from User Reviews (Trendyol) ---
         fit_advice = product_data.get("fit_advice", "").lower()
         if fit_advice:
-            report_lines.append(f"Community Feedback: {product_data.get('fit_advice')}")
+            report_lines.append(f"Kullanıcı Yorumları: {product_data.get('fit_advice')}")
             
             # Logic: "bir beden büyük" -> +1
             if "bir beden büyük" in fit_advice:
                 final_idx += 1
-                report_lines.append("Action: Sizing up (+1) based on community feedback.")
+                report_lines.append("Aksiyon: Kullanıcı yorumlarına göre bir beden büyütüldü (+1).")
             # Logic: "bir beden küçük" -> -1
             elif "bir beden küçük" in fit_advice:
                 final_idx -= 1
-                report_lines.append("Action: Sizing down (-1) based on community feedback.")
+                report_lines.append("Aksiyon: Kullanıcı yorumlarına göre bir beden küçültüldü (-1).")
 
         if shape_msg:
-             report_lines.append(f"Shape Adjustment: {shape_msg}")
+             report_lines.append(f"Vücut Şekli Düzenlemesi: {shape_msg}")
 
         # Elasticity Note
         if elasticity_bonus > 0:
@@ -466,11 +466,11 @@ class SizeRecommender:
             # It's hard to know which exact size won without tracing constraints.
             # But we can verify if the max_constraint was helped by bonus.
             # Simplified: Just notify.
-            report_lines.append(f"Fabric: Contains stretch material (+{elasticity_bonus}cm flexibility).")
+            report_lines.append(f"Kumaş: Esnek materyal içeriyor (+{elasticity_bonus}cm esneme payı).")
 
         # Ease Allowance Note
         if ease_allowance > 0:
-            report_lines.append(f"Layering: Included {ease_allowance}cm allowance for layers (Outerwear/Mid-layer).")
+            report_lines.append(f"Katman Payı: Dış/orta katman giyimi için {ease_allowance}cm pay eklendi.")
 
         final_label = get_label(final_idx)
         
@@ -479,16 +479,16 @@ class SizeRecommender:
         confidence = 1.0
         
         detailed_report = "\n".join(report_lines)
-        fit_message = f"We recommend {final_label}."
+        fit_message = f"{final_label} Beden Öneriyoruz."
         
         if is_fallback:
-            report_lines.append("Note: Used universal International Sizes (S/M/L) as specific brand data was unverified.")
-            fit_message += " (Universal Std)."
+            report_lines.append("Not: Markaya özel tablo bulunamadığı için genel beden tablosu (Universal) kullanıldı.")
+            fit_message += " (Genel Beden)."
             
         if elasticity_bonus > 0:
-             fit_message += " (Stretch Fabric)."
+             fit_message += " (Esnek Kumaş)."
         elif adjustment_msg:
-             fit_message += " (Adjusted for Fit)." # Short summary
+             fit_message += " (Kalıba Göre Ayarlandı)." # Short summary
 
         print(f"DEBUG: Final Decision: {final_label} based on Index {final_idx}")
         print(f"DEBUG: Report: {detailed_report}")

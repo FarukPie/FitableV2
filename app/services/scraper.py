@@ -7,6 +7,8 @@ from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
 
 class ProductScraper:
+    # Concurrency Control: Limit to 1 concurrent browser to prevent OOM
+    _semaphore = asyncio.Semaphore(1)
     @staticmethod
     def _detect_brand(url: str) -> str:
         try:
@@ -37,6 +39,11 @@ class ProductScraper:
         return text.strip().replace('\n', ' ').replace('\r', '')
 
     async def scrape_product(self, url: str) -> Dict[str, str]:
+        # Wrapper to enforce concurrency limit
+        async with self._semaphore:
+            return await self._scrape_product_impl(url)
+
+    async def _scrape_product_impl(self, url: str) -> Dict[str, str]:
         brand = self._detect_brand(url)
         print(f"--- Scraping URL: {url} (Brand: {brand}) ---")
         
@@ -50,6 +57,7 @@ class ProductScraper:
                         "--disable-blink-features=AutomationControlled",
                         "--no-sandbox",
                         "--disable-setuid-sandbox",
+                        "--disable-dev-shm-usage", # CRITICAL for Docker integration
                         "--disable-infobars",
                         "--window-position=-2400,-2400", # Hide window off-screen
                         "--ignore-certificate-errors",
