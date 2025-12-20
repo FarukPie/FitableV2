@@ -148,12 +148,16 @@ class ProductScraper:
                 # Reduced timeout to 30s to fail faster and release resources
                 try:
                     await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                    # CAPTURE FINAL URL (Crucial for short links like ty.gl)
+                    data["product_url"] = page.url 
                 except Exception as e:
                     print(f"Navigation Timeout/Error: {e}")
-                    # Try to proceed if content loaded partially? 
-                    # Usually if timeout happens, we might still have some content.
-                    # But safer to let it throw or return partial error.
-                    # For now, let's just log and continue to content retrieval if possible.
+                    # Try to capture URL even if timeout occurred (might have redirected)
+                    try: 
+                        if page.url != "about:blank":
+                            data["product_url"] = page.url
+                    except: pass
+                    # Continue to try scraping whatever loaded
                     pass
                 
                 # STEALTH: Simulate human behavior (micro-movements and delays)
@@ -168,7 +172,9 @@ class ProductScraper:
                 if "Access Denied" in content or "Access to this page has been denied" in content:
                     print("Anti-Bot Detected: Access Denied")
                     # Fallback: Try to glean info from URL if blocked
-                    product_url_clean = url.split('?')[0]
+                    # Use resolved URL if available
+                    final_url = data.get("product_url", url)
+                    product_url_clean = final_url.split('?')[0]
                     inferred_name = product_url_clean.split('/')[-1].replace('-', ' ').title()
                     
                     data["product_name"] = inferred_name
@@ -283,7 +289,12 @@ class ProductScraper:
             
             # Fallback: Extract from URL
             try:
-                product_url_clean = url.split('?')[0]
+                # Try to retrieve resolved URL if data exists
+                final_url = url
+                if 'data' in locals() and isinstance(data, dict):
+                     final_url = data.get("product_url", url)
+                
+                product_url_clean = final_url.split('?')[0]
                 inferred_name = product_url_clean.split('/')[-1].replace('-', ' ').title()
                 # Remove common extensions/ids
                 inferred_name = re.sub(r'\.html?$', '', inferred_name, flags=re.IGNORECASE)

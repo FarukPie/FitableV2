@@ -183,7 +183,7 @@ class SizeRecommender:
                  "recommended_size": "N/A",
                  "confidence_score": 0.0,
                  "fit_message": "Bu giyilebilir bir ürün değildir veya desteklenmeyen bir kategoridir.",
-                 "detailed_report": "Sistem bu ürünün bir kıyafet olduğunu doğrulayamadı.",
+                 "detailed_report": f"Sistem bu ürünün ('{product_data.get('product_name', 'Bilinmeyen Ürün')}') bir kıyafet olduğunu doğrulayamadı.\nÜrün adı veya açıklamasında kategori (tişört, pantolon vb.) tespit edilemedi.",
                  "warning": "Giyilebilir ürün tespit edilemedi"
              }
         
