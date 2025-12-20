@@ -5,5 +5,5 @@ python-dotenv
 pydantic
 pydantic-settings
 playwright
-beautifulsoup4
+beautifulsoup4==4.12.3
 email-validator
