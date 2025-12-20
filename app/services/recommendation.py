@@ -59,12 +59,25 @@ class SizeRecommender:
 
     def _infer_category(self, product_data: Dict) -> Optional[str]:
         """Infers 'top' or 'bottom' based on clothing keywords. Returns None if not clothing."""
-        text = (product_data.get("product_name", "") + " " + product_data.get("description", "")).lower()
+        # Combine Name + Description + URL for maximum keyword coverage
+        text = (product_data.get("product_name", "") + " " + product_data.get("description", "") + " " + product_data.get("product_url", "")).lower()
         
-        # Keywords
-        bottoms = ["pant", "jeans", "trousers", "skirt", "short", "legging", "pantolon", "etek", "şort", "tayt", "eşofman", "jean"]
-        tops = ["top", "shirt", "blouse", "sweater", "hoodie", "jacket", "coat", "vest", "tişört", "t-shirt", "gömlek", "bluz", "kazak", "süveter", "hırka", "sweatshirt", "ceket", "mont", "kaban", "yelek", "büstiyer", "crop", "tunik", "atlet", "body"]
-        fullbody = ["dress", "jumpsuit", "elbise", "tulum", "abiye"]
+        # Keywords (Turkish + English + Slugified for URL matches)
+        bottoms = [
+            "pant", "jeans", "trousers", "skirt", "short", "legging", 
+            "pantolon", "etek", "şort", "tayt", "eşofman", "jean",
+            "sort", "esofman" # Slugs
+        ]
+        tops = [
+            "top", "shirt", "blouse", "sweater", "hoodie", "jacket", "coat", "vest", 
+            "tişört", "t-shirt", "gömlek", "bluz", "kazak", "süveter", "hırka", 
+            "sweatshirt", "ceket", "mont", "kaban", "yelek", "büstiyer", "crop", "tunik", "atlet", "body",
+            "tisort", "gomlek", "hirka", "bustiyer" # Slugs
+        ]
+        fullbody = [
+            "dress", "jumpsuit", 
+            "elbise", "tulum", "abiye"
+        ]
         
         # Check Bottoms
         for kw in bottoms:
