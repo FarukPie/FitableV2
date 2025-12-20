@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/history_item.dart';
 import 'package:size_recommendation_app/l10n/app_localizations.dart';
+import '../utils/icon_mapper.dart';
+import '../utils/name_simplifier.dart';
 
 class ClosetScreen extends StatefulWidget {
   const ClosetScreen({super.key});
@@ -47,19 +49,11 @@ class _ClosetScreenState extends State<ClosetScreen> {
                   padding: const EdgeInsets.all(12.0),
                   child: Row(
                     children: [
-                      // Image
-                      if (item.imageUrl.isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8.0),
-                          child: _buildImage(item.imageUrl),
-                        )
-                      else
-                        Container(
-                          width: 80,
-                          height: 80,
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.image_not_supported),
-                        ),
+                      // Icon always shown now
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8.0),
+                        child: _buildImage(item.imageUrl, item.productName),
+                      ),
                       const SizedBox(width: 16),
                       // Details
                       Expanded(
@@ -67,7 +61,7 @@ class _ClosetScreenState extends State<ClosetScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              item.productName,
+                              NameSimplifier.simplify(item.productName),
                               style: const TextStyle(fontWeight: FontWeight.bold),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -143,27 +137,19 @@ class _ClosetScreenState extends State<ClosetScreen> {
     );
   }
 
-  Widget _buildImage(String url) {
-    return Image.network(
-        url,
-        width: 80,
-        height: 80,
-        fit: BoxFit.cover,
-        errorBuilder: (ctx, _, __) => const Icon(Icons.error),
-        loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-          if (loadingProgress == null) return child;
-          return SizedBox(
-            width: 80,
-            height: 80,
-            child: Center(
-              child: CircularProgressIndicator(
-                value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                    : null,
-              ),
-            ),
-          );
-        },
-      );
+  Widget _buildImage(String url, String productName) {
+    return Container(
+      width: 80,
+      height: 80,
+      decoration: BoxDecoration(
+        color: Theme.of(context).primaryColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: Icon(
+        IconMapper.getIconForProduct(productName),
+        size: 40,
+        color: Theme.of(context).primaryColor,
+      ),
+    );
   }
 }

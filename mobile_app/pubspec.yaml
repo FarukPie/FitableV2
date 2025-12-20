@@ -21,6 +21,7 @@ dependencies:
   receive_sharing_intent: ^1.4.5
   shared_preferences: ^2.2.2
   tutorial_coach_mark: ^1.2.1
+  phosphor_flutter: ^2.0.0
 
 
 dev_dependencies:

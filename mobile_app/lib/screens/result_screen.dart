@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../models/recommendation_result.dart';
 import 'package:size_recommendation_app/l10n/app_localizations.dart';
+import '../utils/icon_mapper.dart';
+import '../utils/name_simplifier.dart';
 
 class ResultScreen extends StatelessWidget {
   final RecommendationResult result;
@@ -22,21 +24,22 @@ class ResultScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Product Image
-            if (result.imageUrl.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  result.imageUrl,
-                  height: 300,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 300, 
-                    color: Colors.grey[200], 
-                    child: const Icon(Icons.image_not_supported, size: 50)
-                  ),
+            // Product Icon (Always shown)
+            Center(
+              child: Container(
+                height: 200,
+                width: 200,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  IconMapper.getIconForProduct(result.productName),
+                  size: 100,
+                  color: Theme.of(context).primaryColor,
                 ),
               ),
+            ),
             const SizedBox(height: 20),
             
             // Product Info
@@ -46,8 +49,9 @@ class ResultScreen extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              result.productName,
+              NameSimplifier.simplify(result.productName),
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 30),
 

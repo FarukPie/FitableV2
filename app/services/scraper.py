@@ -142,8 +142,8 @@ class ProductScraper:
                     else route.continue_()
                 )
 
-                # STEALTH: Random navigation delay
-                await asyncio.sleep(random.uniform(1.0, 3.0))
+                # STEALTH: Optimized for speed - Minimal delay
+                await asyncio.sleep(random.uniform(0.1, 0.3))
                 
                 # Reduced timeout to 30s to fail faster and release resources
                 try:
@@ -160,7 +160,7 @@ class ProductScraper:
                 try:
                     await page.mouse.move(random.randint(100, 500), random.randint(100, 500))
                 except: pass
-                await asyncio.sleep(random.uniform(2.0, 5.0)) # Wait for React/Anti-bot to settle
+                await asyncio.sleep(random.uniform(0.5, 0.8)) # Minimal wait for load
                 
                 content = await page.content()
                 
@@ -262,6 +262,12 @@ class ProductScraper:
                     
                     # 4. Remove purely numeric trailing words (often prices or IDs stuck to name)
                     name = re.sub(r'\s+\d+$', '', name)
+
+                    # 5. Remove "Fiyatı, Yorumları" and similar suffixes (Trendyol/Search optimization)
+                    # Core pattern: Fiyatı, Yorumları, Fiyatı ve Yorumları, etc.
+                    # Handle comma, dash, space separators.
+                    cleaning_pattern = r'\s+(?:Fiyatı|Yorumları|Özellikleri|Kullananlar)(?:[,\s\-]*(?:Fiyatı|Yorumları|Özellikleri|Kullananlar))*\s*$'
+                    name = re.sub(cleaning_pattern, '', name, flags=re.IGNORECASE)
 
                     # 5. Capitalize nicely
                     name = name.strip()
