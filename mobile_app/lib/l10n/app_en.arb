@@ -108,5 +108,6 @@
     "errorAddToCloset": "Failed to add to closet.",
     "errorRemoveFromCloset": "Failed to remove item.",
     "errorNetwork": "Network error. Please try again.",
-    "errorUnknown": "An unknown error occurred."
+    "errorUnknown": "An unknown error occurred.",
+    "goToProductButton": "Go to Product"
 }

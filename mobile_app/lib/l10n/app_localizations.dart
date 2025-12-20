@@ -751,6 +751,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'An unknown error occurred.'**
   String get errorUnknown;
+
+  /// No description provided for @goToProductButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Product'**
+  String get goToProductButton;
 }
 
 class _AppLocalizationsDelegate

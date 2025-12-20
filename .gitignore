@@ -4,3 +4,11 @@ __pycache__/
 *.pyc
 .idea/
 .vscode/
+
+# Local utility scripts
+debug_*.py
+test_*.py
+check_*.py
+import_data.py
+run.py
+inspect_db.py

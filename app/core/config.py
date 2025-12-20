@@ -33,7 +33,7 @@ if settings.SUPABASE_SERVICE_KEY:
 # Default 'supabase' client: Use Admin if available (for backend DB access), else Anon
 # This preserves existing behavior for recommendation/scraper logic that uses 'supabase' variable.
 if supabase_admin:
-    print("DEBUG: Using SUPABASE_SERVICE_KEY for default 'supabase' client.")
+    # print("DEBUG: Using SUPABASE_SERVICE_KEY for default 'supabase' client.")
     supabase = supabase_admin
 else:
     print("WARNING: Using SUPABASE_KEY (Anon) for default 'supabase' client. RLS may apply.")

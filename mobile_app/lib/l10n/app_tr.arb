@@ -108,5 +108,6 @@
     "errorAddToCloset": "Dolaba eklenemedi.",
     "errorRemoveFromCloset": "Ürün kaldırılamadı.",
     "errorNetwork": "Ağ hatası. Lütfen tekrar deneyin.",
-    "errorUnknown": "Bilinmeyen bir hata oluştu."
+    "errorUnknown": "Bilinmeyen bir hata oluştu.",
+    "goToProductButton": "Ürüne Git"
 }

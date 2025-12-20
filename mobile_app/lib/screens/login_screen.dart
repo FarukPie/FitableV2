@@ -18,7 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _isPasswordVisible = false;
-  bool _rememberMe = false;
+
 
   // Colors from requirements & Template
   static const Color _backgroundColor = Color(0xFF121212); // Main Screen BG
@@ -201,31 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                   const SizedBox(height: 24),
 
-                                  // Remember Me Only
-                                  Row(
-                                    children: [
-                                      SizedBox(
-                                        height: 24,
-                                        width: 24,
-                                        child: Checkbox(
-                                          value: _rememberMe,
-                                          activeColor: _accentColor,
-                                          side: BorderSide(color: Colors.grey.shade600, width: 2),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                          onChanged: (value) {
-                                            setState(() {
-                                              _rememberMe = value ?? false;
-                                            });
-                                          },
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Text(
-                                        l10n.rememberMe,
-                                        style: TextStyle(color: Colors.grey[400], fontSize: 13),
-                                      ),
-                                    ],
-                                  ),
+
                                   const SizedBox(height: 40),
 
                                   // Sign In Button

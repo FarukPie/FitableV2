@@ -157,14 +157,14 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                             builder: (context, provider, _) { 
                                 final fullName = provider.user?.fullName;
                                 final username = provider.user?.username;
-                                final emailName = provider.user?.email.split('@')[0] ?? "Kullanıcı";
+
                                 
-                                // Priority: Full Name > Username > Email Name > "Kullanıcı"
+                                // Priority: Full Name > Username > "Kullanıcı"
                                 final displayName = (fullName != null && fullName.isNotEmpty) 
                                     ? fullName 
                                     : (username != null && username.isNotEmpty 
                                         ? username 
-                                        : emailName);
+                                        : "Kullanıcı");
                                     
                                 return Padding(
                                   padding: const EdgeInsets.only(bottom: 32.0, top: 8.0),

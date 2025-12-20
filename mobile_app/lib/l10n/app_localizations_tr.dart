@@ -350,4 +350,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get errorUnknown => 'Bilinmeyen bir hata oluştu.';
+
+  @override
+  String get goToProductButton => 'Ürüne Git';
 }

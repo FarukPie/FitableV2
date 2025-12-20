@@ -5,6 +5,7 @@ import '../models/recommendation_result.dart';
 import 'package:size_recommendation_app/l10n/app_localizations.dart';
 import '../utils/icon_mapper.dart';
 import '../utils/name_simplifier.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ResultScreen extends StatelessWidget {
   final RecommendationResult result;
@@ -148,7 +149,47 @@ class ResultScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 8), // Reduced spacing to fit 3 buttons if needed, or keeping it spacious
+                
+                // Go to Product Button
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final url = Uri.parse(productUrl);
+                      if (await canLaunchUrl(url)) {
+                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      } else {
+                        // try default launch
+                        try {
+                           await launchUrl(url);
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("${AppLocalizations.of(context)!.errorMessage}: $e")),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.open_in_new, color: Colors.blue),
+                    label: Text(
+                        // Try to use the localized string. If it fails to compile because generic generation is pending,
+                        // we might need a fallback. But standard flow assumes it works.
+                        // Since I added the key to arb files, I will assume it's available.
+                        // However, dart generation happens on build.
+                        // I will use a safe access or hardcode if I was worried, but let's trust the flow.
+                        // Wait, if I use `l10n.goToProductButton` and it is not generated yet, analysis might fail.
+                        // But I am just editing the file.
+                        // To be safe I will use: AppLocalizations.of(context)!.goToProductButton
+                         AppLocalizations.of(context)?.goToProductButton ?? "Ürüne Git"
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.blue),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () async {

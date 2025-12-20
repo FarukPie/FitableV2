@@ -41,10 +41,10 @@ async def signup(user: UserRegister):
         
         # Check if we are running with service role key (we should be)
         # Attempt to use admin.create_user via dedicated admin client
-        print(f"DEBUG: Attempting to create user {user.email} with admin privileges")
+        # print(f"DEBUG: Attempting to create user {user.email} with admin privileges")
         response = supabase_admin.auth.admin.create_user(params)
         
-        print(f"DEBUG: Create User Response: {response}")
+        # print(f"DEBUG: Create User Response: {response}")
         
         # Auto-Login: Immediately sign in with password to get tokens
         login_response = supabase_anon.auth.sign_in_with_password({
@@ -103,12 +103,7 @@ async def login(user: UserLogin):
     except Exception as e:
          raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/me")
-async def get_user_me(token: str = Depends(lambda x: x)):
-    # This is a bit of a hack since we are not using a proper dependency for Bearer token extraction
-    # Normally we would use fastapi.security.HTTPBearer.
-    # But let's assume the frontend sends the token in the header and we use Supabase to validate it.
-    pass 
+
 
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 security = HTTPBearer()
@@ -141,7 +136,7 @@ class UserGoogleLogin(BaseModel):
 @router.post("/google")
 async def google_login(data: UserGoogleLogin):
     try:
-        print(f"DEBUG: Attempting Google Login with token: {data.id_token[:10]}...")
+        # print(f"DEBUG: Attempting Google Login with token: {data.id_token[:10]}...")
         response = supabase_anon.auth.sign_in_with_id_token({
             "provider": "google",
             "token": data.id_token,

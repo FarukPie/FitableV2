@@ -347,4 +347,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorUnknown => 'An unknown error occurred.';
+
+  @override
+  String get goToProductButton => 'Go to Product';
 }

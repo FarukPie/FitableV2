@@ -44,7 +44,7 @@ class IntroDialog extends StatelessWidget {
               textColor,
               descriptionColor,
             ),
-            const Divider(height: 30),
+            const SizedBox(height: 24),
             _buildFeatureRow(
               context,
               Icons.checkroom_rounded,
@@ -53,7 +53,7 @@ class IntroDialog extends StatelessWidget {
               textColor,
               descriptionColor,
             ),
-            const Divider(height: 30),
+            const SizedBox(height: 24),
             _buildFeatureRow(
               context,
               Icons.person_rounded,

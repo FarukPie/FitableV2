@@ -184,36 +184,30 @@ class _SignupScreenState extends State<SignupScreen> {
                                     ),
                                     const SizedBox(height: 16),
                                     
-                                    // Row for Age and Gender
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: _buildTextField(
-                                            controller: _ageController,
-                                            hint: l10n.ageHint,
-                                            icon: Icons.cake_outlined,
-                                            inputType: TextInputType.number,
-                                            validator: (v) => v?.isEmpty == true ? l10n.requiredError : null,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: DropdownButtonFormField<String>(
-                                            dropdownColor: _inputFillColor,
-                                            style: const TextStyle(color: Colors.white),
-                                            decoration: _inputDecoration(l10n.genderLabel, Icons.people_outline),
-                                            value: _gender,
-                                            items: [
-                                              DropdownMenuItem(value: 'male', child: Text(l10n.genderMale)),
-                                              DropdownMenuItem(value: 'female', child: Text(l10n.genderFemale)),
-                                              DropdownMenuItem(value: 'other', child: Text(l10n.genderOther)),
-                                            ],
-                                            onChanged: (newValue) => setState(() => _gender = newValue),
-                                            validator: (val) => val == null ? l10n.requiredError : null,
-                                            icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                                          ),
-                                        ),
+                                    // Age Field
+                                    _buildTextField(
+                                      controller: _ageController,
+                                      hint: l10n.ageHint,
+                                      icon: Icons.cake_outlined,
+                                      inputType: TextInputType.number,
+                                      validator: (v) => v?.isEmpty == true ? l10n.requiredError : null,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    
+                                    // Gender Dropdown
+                                    DropdownButtonFormField<String>(
+                                      dropdownColor: _inputFillColor,
+                                      style: const TextStyle(color: Colors.white),
+                                      decoration: _inputDecoration(l10n.genderLabel, Icons.people_outline),
+                                      value: _gender,
+                                      items: [
+                                        DropdownMenuItem(value: 'male', child: Text(l10n.genderMale)),
+                                        DropdownMenuItem(value: 'female', child: Text(l10n.genderFemale)),
+                                        DropdownMenuItem(value: 'other', child: Text(l10n.genderOther)),
                                       ],
+                                      onChanged: (newValue) => setState(() => _gender = newValue),
+                                      validator: (val) => val == null ? l10n.requiredError : null,
+                                      icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
                                     ),
                                     const SizedBox(height: 16),
 
