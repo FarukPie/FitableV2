@@ -6,5 +6,4 @@ pydantic
 pydantic-settings
 playwright
 beautifulsoup4
-lxml
 email-validator
