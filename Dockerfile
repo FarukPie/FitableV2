@@ -17,6 +17,10 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Explicitly install Playwright browsers (Chromium only for smaller image)
+RUN playwright install chromium
+RUN playwright install-deps chromium
+
 # DEBUG: List installed packages to verify beautifulsoup4 is present
 RUN pip list
 
