@@ -9,7 +9,7 @@ import '../models/history_item.dart';
 class ApiService {
   // Use 127.0.0.1 for Windows/Web testing. 
   // Use 10.0.2.2 ONLY for Android Emulator.
-  static const String baseUrl = 'https://fitablev2.onrender.com';
+  static const String baseUrl = 'https://fitable.onrender.com';
   // static const String baseUrl = 'http://127.0.0.1:8000';
 
   Future<User> getUserProfile(String token) async {
