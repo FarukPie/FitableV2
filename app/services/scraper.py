@@ -280,12 +280,23 @@ class ProductScraper:
 
         except Exception as e:
             print(f"Error scraping {url}: {e}")
+            
+            # Fallback: Extract from URL
+            try:
+                product_url_clean = url.split('?')[0]
+                inferred_name = product_url_clean.split('/')[-1].replace('-', ' ').title()
+                # Remove common extensions/ids
+                inferred_name = re.sub(r'\.html?$', '', inferred_name, flags=re.IGNORECASE)
+                inferred_name = re.sub(r'\s+[A-Z0-9]{5,}$', '', inferred_name) # Remove SKUs
+            except:
+                inferred_name = "Ürün (Detaylar Alınamadı)"
+
             return {
                 "brand": brand,
                 "error": str(e),
                 "product_url": url,
-                 # Return bare minimum to avoid crashes downstream if possible
-                "product_name": "Scraping Failed",
+                 # Improved Fallback Name
+                "product_name": inferred_name,
                 "description": "", 
                 "price": ""
             }
