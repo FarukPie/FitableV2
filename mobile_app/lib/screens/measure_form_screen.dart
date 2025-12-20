@@ -179,33 +179,35 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                                            child: CircleAvatar(
                                             radius: 40,
                                             backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
-                                            child: Builder(
-                                              builder: (context) {
-                                                final rawGender = provider.user?.gender;
-                                                // debugPrint("Avatar Debug: Raw Gender: $rawGender");
-                                                
-                                                final gender = rawGender?.toLowerCase() ?? 'male';
-                                                IconData iconData;
-                                                Color iconColor;
+                                              child: Builder(
+                                                builder: (context) {
+                                                  final rawGender = provider.user?.gender;
+                                                  
+                                                  final gender = rawGender?.toLowerCase().trim() ?? 'male';
+                                                  String imagePath;
 
-                                                if (gender.contains('erkek') || gender.contains('male')) {
-                                                  iconData = Icons.man;
-                                                  iconColor = Colors.blue;
-                                                } else if (gender.contains('kadın') || gender.contains('kadin') || gender.contains('female') || gender.contains('woman')) {
-                                                  iconData = Icons.woman;
-                                                  iconColor = Colors.pink;
-                                                } else {
-                                                  iconData = Icons.transgender;
-                                                  iconColor = Colors.purple;
-                                                }
+                                                  // Check Female First (or use strict equality to avoid substring issues like 'female' containing 'male')
+                                                  if (gender == 'kadın' || gender == 'kadin' || gender == 'female' || gender == 'woman') {
+                                                    imagePath = 'assets/images/avatar_female.png';
+                                                  } else if (gender == 'erkek' || gender == 'male' || gender == 'man') {
+                                                    imagePath = 'assets/images/avatar_male.png';
+                                                  } else {
+                                                    imagePath = 'assets/images/avatar_other.png';
+                                                  }
 
-                                                return Icon(
-                                                  iconData,
-                                                  size: 50,
-                                                  color: iconColor,
-                                                );
-                                              },
-                                            ),
+                                                  return ClipOval(
+                                                    child: Image.asset(
+                                                      imagePath,
+                                                      width: 80,
+                                                      height: 80,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (context, error, stackTrace) {
+                                                        return const Icon(Icons.person, size: 50, color: Colors.white);
+                                                      },
+                                                    ),
+                                                  );
+                                                },
+                                              ),
                                           ),
                                         ),
                                        const SizedBox(height: 16),

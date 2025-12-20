@@ -691,6 +691,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Invalid username or password.'**
   String get invalidCredentials;
+
+  /// No description provided for @errorHistoryLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load history.'**
+  String get errorHistoryLoad;
+
+  /// No description provided for @errorMeasurementsLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load measurements.'**
+  String get errorMeasurementsLoad;
+
+  /// No description provided for @errorAccountDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete account.'**
+  String get errorAccountDelete;
+
+  /// No description provided for @errorLoginGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Login failed.'**
+  String get errorLoginGeneric;
+
+  /// No description provided for @errorRegisterGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration failed.'**
+  String get errorRegisterGeneric;
+
+  /// No description provided for @errorUpdateMeasurements.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update measurements.'**
+  String get errorUpdateMeasurements;
+
+  /// No description provided for @errorAddToCloset.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to add to closet.'**
+  String get errorAddToCloset;
+
+  /// No description provided for @errorRemoveFromCloset.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to remove item.'**
+  String get errorRemoveFromCloset;
+
+  /// No description provided for @errorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Network error. Please try again.'**
+  String get errorNetwork;
+
+  /// No description provided for @errorUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'An unknown error occurred.'**
+  String get errorUnknown;
 }
 
 class _AppLocalizationsDelegate

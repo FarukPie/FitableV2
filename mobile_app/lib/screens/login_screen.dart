@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import 'signup_screen.dart';
+import '../utils/error_mapper.dart';
 import 'package:size_recommendation_app/l10n/app_localizations.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -48,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // Show friendly error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.invalidCredentials),
+            content: Text(ErrorMapper.getErrorMessage(e.toString(), context)),
             backgroundColor: Colors.redAccent,
           ),
         );

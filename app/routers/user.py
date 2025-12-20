@@ -48,15 +48,22 @@ async def update_measurements(measurements: UserMeasurementCreate):
         calc_shape = "rectangular" # Default
         
         if shoulder > 0 and waist > 0 and hips > 0:
-            if shoulder > waist * 1.05 and shoulder > hips * 1.05:
+            # 1. Oval (Apple): Waist is wider or comparable to chest/hips
+            # We use a slight tolerance (0.95) so if waist is almost as big as hips/chest, it counts as Oval.
+            if waist > chest * 0.96 and waist > hips * 0.96:
+                calc_shape = "oval"
+            
+            # 2. Inverted Triangle: Shoulders significantly wider than hips (approx 4%)
+            elif shoulder > hips * 1.04:
                 calc_shape = "inverted_triangle"
-            elif waist > chest and waist > hips:
-                # Check for Oval (Center heavy)
-                # Ensure it's significantly larger? Or just larger?
-                if waist > chest * 1.05:
-                    calc_shape = "oval"
-            elif hips > shoulder * 1.05 and hips > chest:
+            
+            # 3. Triangle (Pear): Hips significantly wider than shoulders (approx 4%)
+            elif hips > shoulder * 1.04:
                  calc_shape = "triangle"
+            
+            # 4. Rectangular: Balanced
+            else:
+                 calc_shape = "rectangular"
         
         # If frontend sent a shape, ignore it? Or overwrite? 
         # User requested "Automatic determination". So we overwrite.

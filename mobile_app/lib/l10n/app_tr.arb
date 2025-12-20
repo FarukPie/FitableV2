@@ -98,5 +98,15 @@
     "shapeTriangle": "Üçgen",
     "shapeOval": "Oval",
     "shapeRectangular": "Dikdörtgen",
-    "invalidCredentials": "Kullanıcı adı veya şifre hatalı."
+    "invalidCredentials": "Kullanıcı adı veya şifre hatalı.",
+    "errorHistoryLoad": "Geçmiş yüklenemedi.",
+    "errorMeasurementsLoad": "Ölçüler yüklenemedi.",
+    "errorAccountDelete": "Hesap silinemedi.",
+    "errorLoginGeneric": "Giriş başarısız.",
+    "errorRegisterGeneric": "Kayıt başarısız.",
+    "errorUpdateMeasurements": "Ölçüler güncellenemedi.",
+    "errorAddToCloset": "Dolaba eklenemedi.",
+    "errorRemoveFromCloset": "Ürün kaldırılamadı.",
+    "errorNetwork": "Ağ hatası. Lütfen tekrar deneyin.",
+    "errorUnknown": "Bilinmeyen bir hata oluştu."
 }

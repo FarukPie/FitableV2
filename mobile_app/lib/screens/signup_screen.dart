@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import 'package:size_recommendation_app/l10n/app_localizations.dart';
+import '../utils/error_mapper.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -54,12 +55,24 @@ class _SignupScreenState extends State<SignupScreen> {
     // debugPrint("DEBUG: Selected UI Gender: '$_gender'");
 
     try {
+      String finalGender = 'male';
+      if (_gender != null) {
+        final lower = _gender!.toLowerCase();
+        if (lower == 'erkek' || lower == 'male') {
+          finalGender = 'male';
+        } else if (lower == 'kadın' || lower == 'female') {
+          finalGender = 'female';
+        } else {
+          finalGender = 'other';
+        }
+      }
+
       await Provider.of<AppProvider>(context, listen: false).register(
         _emailController.text.trim(),
         _passwordController.text,
         _emailController.text.trim().split('@')[0], 
         _fullNameController.text.trim(),
-        _gender!,
+        finalGender,
         int.parse(_ageController.text.trim()),
       );
       
@@ -74,12 +87,12 @@ class _SignupScreenState extends State<SignupScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${AppLocalizations.of(context)!.registrationFailed}${e.toString()}'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(ErrorMapper.getErrorMessage(e.toString(), context)),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

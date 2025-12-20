@@ -7,6 +7,7 @@ import 'closet_screen.dart';
 import 'measure_form_screen.dart';
 import 'result_screen.dart';
 import 'package:size_recommendation_app/l10n/app_localizations.dart';
+import '../utils/error_mapper.dart';
 import 'dart:async';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -280,17 +281,17 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 24),
             child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.withOpacity(0.3)),
-              ),
+              padding: const EdgeInsets.all(8.0),
+              color: Colors.redAccent.withOpacity(0.1),
               child: Row(
                 children: [
-                   const Icon(Icons.error_outline, color: Colors.red),
-                   const SizedBox(width: 12),
-                   Expanded(child: Text(provider.error!, style: const TextStyle(color: Colors.redAccent))),
+                  const Icon(Icons.error, color: Colors.redAccent),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(ErrorMapper.getErrorMessage(provider.error!, context), style: const TextStyle(color: Colors.redAccent))),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.redAccent),
+                    onPressed: provider.clearResult,
+                  )
                 ],
               ),
             ),

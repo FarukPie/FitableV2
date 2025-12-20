@@ -43,7 +43,7 @@ class ApiService {
     }
   }
 
-  Future<void> updateMeasurements(String userId, UserMeasurement measurements) async {
+  Future<UserMeasurement> updateMeasurements(String userId, UserMeasurement measurements) async {
     final url = Uri.parse('$baseUrl/update-measurements'); 
     try {
       final response = await http.post(
@@ -58,6 +58,19 @@ class ApiService {
       if (response.statusCode != 200) {
         throw Exception('Failed to update measurements: ${response.body}');
       }
+      
+      final jsonResponse = jsonDecode(response.body);
+      debugPrint("DEBUG: Update Response Body: $jsonResponse");
+      
+      final data = jsonResponse['data'];
+      if(data is List && data.isNotEmpty) {
+           return UserMeasurement.fromJson(data[0]);
+      } else if (data is Map<String, dynamic>) {
+           return UserMeasurement.fromJson(data);
+      }
+      
+      return measurements; // Fallback if no data returned (shouldn't happen with current backend)
+      
     } catch (e) {
       // debugPrint("Error updating measurements: $e");
       rethrow;

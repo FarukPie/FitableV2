@@ -98,5 +98,15 @@
     "shapeTriangle": "Triangle",
     "shapeOval": "Oval",
     "shapeRectangular": "Rectangular",
-    "invalidCredentials": "Invalid username or password."
+    "invalidCredentials": "Invalid username or password.",
+    "errorHistoryLoad": "Failed to load history.",
+    "errorMeasurementsLoad": "Failed to load measurements.",
+    "errorAccountDelete": "Failed to delete account.",
+    "errorLoginGeneric": "Login failed.",
+    "errorRegisterGeneric": "Registration failed.",
+    "errorUpdateMeasurements": "Failed to update measurements.",
+    "errorAddToCloset": "Failed to add to closet.",
+    "errorRemoveFromCloset": "Failed to remove item.",
+    "errorNetwork": "Network error. Please try again.",
+    "errorUnknown": "An unknown error occurred."
 }

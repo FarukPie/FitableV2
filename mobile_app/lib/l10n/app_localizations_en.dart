@@ -317,4 +317,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invalidCredentials => 'Invalid username or password.';
+
+  @override
+  String get errorHistoryLoad => 'Failed to load history.';
+
+  @override
+  String get errorMeasurementsLoad => 'Failed to load measurements.';
+
+  @override
+  String get errorAccountDelete => 'Failed to delete account.';
+
+  @override
+  String get errorLoginGeneric => 'Login failed.';
+
+  @override
+  String get errorRegisterGeneric => 'Registration failed.';
+
+  @override
+  String get errorUpdateMeasurements => 'Failed to update measurements.';
+
+  @override
+  String get errorAddToCloset => 'Failed to add to closet.';
+
+  @override
+  String get errorRemoveFromCloset => 'Failed to remove item.';
+
+  @override
+  String get errorNetwork => 'Network error. Please try again.';
+
+  @override
+  String get errorUnknown => 'An unknown error occurred.';
 }

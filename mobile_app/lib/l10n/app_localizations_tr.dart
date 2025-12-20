@@ -320,4 +320,34 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get invalidCredentials => 'Kullanıcı adı veya şifre hatalı.';
+
+  @override
+  String get errorHistoryLoad => 'Geçmiş yüklenemedi.';
+
+  @override
+  String get errorMeasurementsLoad => 'Ölçüler yüklenemedi.';
+
+  @override
+  String get errorAccountDelete => 'Hesap silinemedi.';
+
+  @override
+  String get errorLoginGeneric => 'Giriş başarısız.';
+
+  @override
+  String get errorRegisterGeneric => 'Kayıt başarısız.';
+
+  @override
+  String get errorUpdateMeasurements => 'Ölçüler güncellenemedi.';
+
+  @override
+  String get errorAddToCloset => 'Dolaba eklenemedi.';
+
+  @override
+  String get errorRemoveFromCloset => 'Ürün kaldırılamadı.';
+
+  @override
+  String get errorNetwork => 'Ağ hatası. Lütfen tekrar deneyin.';
+
+  @override
+  String get errorUnknown => 'Bilinmeyen bir hata oluştu.';
 }

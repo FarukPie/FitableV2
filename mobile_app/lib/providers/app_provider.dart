@@ -208,9 +208,11 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      await _apiService.updateMeasurements(_user!.id, measurements);
-      // Update local cache on success
-      await _saveMeasurementsLocally(measurements);
+      // Get the updated measurements from the backend (which includes calculated body shape)
+      final updatedMeasurements = await _apiService.updateMeasurements(_user!.id, measurements);
+      
+      // Update local cache with the BACKEND response, not just the local input
+      await _saveMeasurementsLocally(updatedMeasurements);
       _hasMeasurements = true; 
     } catch (e) {
       _error = e.toString();
