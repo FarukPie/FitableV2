@@ -5,6 +5,7 @@ import '../models/user_measurement.dart';
 import '../models/recommendation_result.dart';
 import '../models/user_model.dart';
 import '../models/history_item.dart';
+import '../models/reference_item.dart';
 
 class ApiService {
   // Use 127.0.0.1 for Windows/Web testing. 
@@ -94,7 +95,17 @@ class ApiService {
         final data = jsonDecode(response.body);
         return RecommendationResult.fromJson(data);
       } else {
-        throw Exception('Failed to get recommendation: ${response.body}');
+        // Try to parse the error message from the backend
+        String errorMessage = 'Failed to get recommendation';
+        try {
+          final errorParams = jsonDecode(response.body);
+          if (errorParams['detail'] != null) {
+            errorMessage = errorParams['detail'];
+          }
+        } catch (_) {
+          // If json decode fails, stick to generic
+        }
+        throw Exception(errorMessage);
       }
     } catch (e) {
       rethrow;
@@ -249,6 +260,57 @@ class ApiService {
 
       if (response.statusCode != 200) {
         throw Exception('Failed to delete account: ${response.body}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<ReferenceItem>> getUserReferences(String userId) async {
+    final url = Uri.parse('$baseUrl/references/$userId');
+    try {
+      final response = await http.get(url).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        final List<dynamic> data = jsonResponse['data'] as List<dynamic>;
+        return data.map((item) => ReferenceItem.fromJson(item)).toList();
+      } else {
+        throw Exception('Failed to load references');
+      }
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> addReference(String userId, String brand, String sizeLabel) async {
+    final url = Uri.parse('$baseUrl/references');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'user_id': userId,
+          'brand': brand,
+          'size_label': sizeLabel,
+        }),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to add reference: ${response.body}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> deleteReference(int refId) async {
+    final url = Uri.parse('$baseUrl/references/$refId');
+    try {
+      final response = await http.delete(url).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to delete reference: ${response.body}');
       }
     } catch (e) {
       rethrow;

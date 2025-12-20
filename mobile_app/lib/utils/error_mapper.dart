@@ -37,12 +37,21 @@ class ErrorMapper {
 
     // Fallback
     // If we can't map it, and the user insisted on Turkish, we can prefix it or just return a generic error.
-    // However, hiding the detail completely is bad for validation errors like "Password too short".
-    // We will attempt to return the error, but if it looks like a raw exception, maybe clean it up?
+    // Access Denied / Bot Protection
+    if (lowerError.contains('access denied') || 
+        lowerError.contains('site erişimi') || 
+        lowerError.contains('bot koruması') ||
+        lowerError.contains('sunucu hatası') ||
+        lowerError.contains('internal server error')) {
+      // Return the clean error message without 'Exception: ' prefix if possible, 
+      // or just return the localized/specific string.
+      return error.replaceAll("Exception: ", ""); 
+    }
+
     if (lowerError.contains('exception: ')) {
       return l10n.errorUnknown; 
     }
     
-    return error; // Return original if it doesn't match known English patterns, likely it's already localized or custom.
+    return error;
   }
 }

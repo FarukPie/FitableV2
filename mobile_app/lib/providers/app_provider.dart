@@ -6,6 +6,8 @@ import '../models/user_measurement.dart';
 import '../models/recommendation_result.dart';
 import '../models/user_model.dart';
 import '../models/history_item.dart';
+import '../models/history_item.dart';
+import '../models/reference_item.dart';
 import '../services/api_service.dart';
 
 class AppProvider with ChangeNotifier {
@@ -100,7 +102,9 @@ class AppProvider with ChangeNotifier {
   String? _error;
   RecommendationResult? _result;
   User? _user;
+
   bool _hasMeasurements = false;
+  List<ReferenceItem> _references = []; // List of user references
   Locale _locale = const Locale('tr'); // Default to Turkish
   ThemeMode _themeMode = ThemeMode.dark; // Default to Dark
   bool _isNewRegistration = false;
@@ -115,6 +119,7 @@ class AppProvider with ChangeNotifier {
   bool get isAuthenticated => _user != null;
   String? get userId => _user?.id;
   bool get isNewRegistration => _isNewRegistration;
+  List<ReferenceItem> get references => _references;
 
   void clearResult() {
     _result = null;
@@ -327,6 +332,41 @@ class AppProvider with ChangeNotifier {
       await _apiService.deleteAccount(_user!.id);
       // Clear session locally
       logout();
+    } catch (e) {
+      rethrow;
+    }
+
+  }
+
+  // --- REFERENCES MANAGEMENT ---
+
+  Future<void> fetchReferences() async {
+    if (!isAuthenticated) return;
+    try {
+      _references = await _apiService.getUserReferences(_user!.id);
+      notifyListeners();
+    } catch (e) {
+      _references = [];
+      notifyListeners();
+    }
+  }
+
+  Future<void> addReference(String brand, String sizeLabel) async {
+    if (!isAuthenticated) return;
+    try {
+      await _apiService.addReference(_user!.id, brand, sizeLabel);
+      await fetchReferences(); // Refresh list
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> deleteReference(int refId) async {
+    if (!isAuthenticated) return;
+    try {
+      await _apiService.deleteReference(refId);
+      _references.removeWhere((item) => item.id == refId);
+      notifyListeners();
     } catch (e) {
       rethrow;
     }

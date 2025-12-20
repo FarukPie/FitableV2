@@ -64,19 +64,20 @@ class SizeRecommender:
         
         # Keywords (Turkish + English + Slugified for URL matches)
         bottoms = [
-            "pant", "jeans", "trousers", "skirt", "short", "legging", 
-            "pantolon", "etek", "şort", "tayt", "eşofman", "jean",
-            "sort", "esofman" # Slugs
+            "pant", "jeans", "trousers", "skirt", "short", "legging", "jogger", "chino", "cargo", "slacks", "bermuda", "capri",
+            "pantolon", "etek", "şort", "tayt", "eşofman", "jean", "jogger", "kapri", "kargo", "bermuda", "salvar", "şalvar", "sort-etek",
+            "sort", "esofman", "salvar", "denim", "trouser", "bottom", "alt", "biker" # Slugs and Extras
         ]
         tops = [
-            "top", "shirt", "blouse", "sweater", "hoodie", "jacket", "coat", "vest", 
-            "tişört", "t-shirt", "gömlek", "bluz", "kazak", "süveter", "hırka", 
-            "sweatshirt", "ceket", "mont", "kaban", "yelek", "büstiyer", "crop", "tunik", "atlet", "body",
-            "tisort", "gomlek", "hirka", "bustiyer" # Slugs
+            "top", "shirt", "blouse", "sweater", "hoodie", "jacket", "coat", "vest", "cardigan", "pullover", "tunic", "fleece", "poncho", "raincoat", "trench",
+            "tişört", "t-shirt", "gömlek", "bluz", "kazak", "süveter", "hırka", "sweatshirt", "ceket", "mont", "kaban", "yelek", 
+            "büstiyer", "crop", "tunik", "atlet", "body", "polar", "yağmurluk", "trençkot", "pardesü", "panço", "bolero", "kimono", "kaftan", "kürk",
+            "tisort", "gomlek", "hirka", "bustiyer", "ust", "üst", "triko", "jarse", "jersey", "yagmurluk", "trenckot", "pardesu", "panco", "kurk",
+            "outer", "dis giyim", "dış giyim", "tank", "askılı", "suveter", "yelek", "kazak", "t-sirt", "sirt" 
         ]
         fullbody = [
-            "dress", "jumpsuit", 
-            "elbise", "tulum", "abiye"
+            "dress", "jumpsuit", "romper", "suit", "overall",
+            "elbise", "tulum", "abiye", "salopet", "jile", "takım", "takim", "set", "takimi"
         ]
         
         # Check Bottoms
@@ -170,13 +171,33 @@ class SizeRecommender:
         u_shoulder = measurements.get("shoulder") or 0
         u_chest = measurements.get("chest") or 0
         u_waist = measurements.get("waist") or 0
+        # New Measurements (Precision)
+        u_arm_length = measurements.get("arm_length") or 0
+        u_inseam = measurements.get("inseam") or 0
+        u_hand_span = measurements.get("hand_span_cm") or 0
+        ref_brand = measurements.get("reference_brand")
+        ref_size = measurements.get("reference_size_label")
+        garment_spans = measurements.get("garment_width_spans") or 0
         
+        # 0.5 CHECK SCRAPER ERROR
+        if product_data.get("error"):
+             print(f"DEBUG: Scraper returned error: {product_data['error']}")
+             return {
+                 "recommended_size": "N/A",
+                 "confidence_score": 0.0,
+                 "fit_message": "Bu ürüne erişilirken site engeliyle karşılaşıldı.",
+                 "detailed_report": f"Ürün verisi çekilemedi: {product_data['error']}.\nLütfen başka bir ürün veya marka ile deneyin.",
+                 "warning": "Site Erişimi Engellendi (Bot Koruması)",
+                 "detail": "Site Erişimi Engellendi: Bu marka bot koruması kullanıyor." # For ApiService
+             }
+        
+        # 1. Re-extract relevant fields from product_data (passed from router)
         brand_name = product_data.get("brand", "Unknown")
         is_zara = "zara" in brand_name.lower()
         description = (product_data.get("description", "") + " " + product_data.get("product_name", "")).lower()
         fabric_text = product_data.get("fabric_composition")
         body_shape = measurements.get("body_shape", "regular")
-        
+
         category = self._infer_category(product_data)
         if not category:
              return {
@@ -189,6 +210,8 @@ class SizeRecommender:
         
         print(f"DEBUG: Inputs - Height: {u_height}, Weight: {u_weight}, Shape: {body_shape}")
         print(f"DEBUG: Product - Brand: {brand_name}, Category: {category}")
+        
+        reasons = []
         
         # 1. Fetch Size Chart
         size_chart = []
@@ -209,6 +232,84 @@ class SizeRecommender:
             
         if not size_chart:
              return {"error": "Beden standartları belirlenemedi."}
+
+        # --- PRECISION FEATURE: Hand Span (Giysi Ölçümü) ---
+        # If user provided garment_width_spans, we rely on IT for Chest/Waist.
+        if u_hand_span > 0 and garment_spans > 0:
+            # Calculated Width in CM
+            garment_width_cm = garment_spans * u_hand_span
+            # Circumference = Width * 2
+            measured_circumference = garment_width_cm * 2
+            
+            print(f"DEBUG: Hand Span Logic -> Width: {garment_width_cm}cm, Circ: {measured_circumference}cm")
+            
+            # Check if this matches Chest or Waist based on category
+            if category == "top":
+                u_chest = measured_circumference
+                reasons.append(f"Karış Ölçümü ({garment_spans} karış): Göğüs {int(u_chest)}cm olarak hesaplandı.")
+            elif category == "bottom":
+                u_waist = measured_circumference
+                reasons.append(f"Karış Ölçümü ({garment_spans} karış): Bel {int(u_waist)}cm olarak hesaplandı.")
+        
+        # If we have MULTIPLE references, we should try to match one of them or average them.
+        # 1. Fetch User References from DB
+        user_refs_response = self.supabase.table("user_references").select("*").eq("user_id", user_id).execute()
+        user_refs = user_refs_response.data or []
+        
+        # Append the single reference from measurements if generic
+        if ref_brand and ref_size:
+            user_refs.append({"brand": ref_brand, "size_label": ref_size})
+
+        matched_ref = None
+
+        # 2. Strategy: Direct Match
+        # Does the user have a reference FOR THE CURRENT BRAND?
+        for ref in user_refs:
+            if self._normalize_brand(ref["brand"]) == brand_id:
+                matched_ref = ref
+                reasons.append(f"Direkt Marka Eşleşmesi: Referans verdiğiniz ({ref['brand']} {ref['size_label']}) ile aynı marka.")
+                break
+        
+        if not matched_ref and user_refs:
+           # 3. Strategy: Triangulation (Average Virtual Body)
+           virtual_chests = []
+           virtual_waists = []
+           
+           for ref in user_refs:
+               rb_id = self._normalize_brand(ref["brand"])
+               if rb_id:
+                   rc = self._get_size_chart(rb_id, category)
+                   ri = next((s for s in rc if s["size_label"].lower() == ref["size_label"].lower()), None)
+                   if ri:
+                       if "min_chest" in ri: virtual_chests.append((ri["min_chest"] + ri["max_chest"])/2)
+                       if "min_waist" in ri: virtual_waists.append((ri["min_waist"] + ri["max_waist"])/2)
+
+           if virtual_chests:
+               avg_chest = sum(virtual_chests) / len(virtual_chests)
+               # Blend real measurement with virtual average (50/50 or override?)
+               # If user measured poorly but knows sizes, virtual is better.
+               # Let's use virtual if available.
+               u_chest = avg_chest
+               reasons.append(f"{len(user_refs)} Referans Ürün Ortalaması: Göğüs {int(u_chest)}cm olarak kalibre edildi.")
+           
+           if virtual_waists and category == "bottom":
+               avg_waist = sum(virtual_waists) / len(virtual_waists)
+               u_waist = avg_waist
+               reasons.append(f"{len(user_refs)} Referans Ürün Ortalaması: Bel {int(u_waist)}cm olarak kalibre edildi.")
+
+        elif matched_ref:
+            # Calculate directly from matched reference
+             # Find dimensions of matched_ref
+               rb_id = self._normalize_brand(matched_ref["brand"])
+               rc = self._get_size_chart(rb_id, category)
+               ri = next((s for s in rc if s["size_label"].lower() == matched_ref["size_label"].lower()), None)
+               if ri:
+                   if "min_chest" in ri: u_chest = (ri["min_chest"] + ri["max_chest"]) / 2
+                   if "min_waist" in ri: u_waist = (ri["min_waist"] + ri["max_waist"]) / 2
+        
+        # --- OLD SINGLE REF LOGIC REMOVED/MERGED ABOVE ---
+        # elif ref_brand and ref_size: ... (Already handled by appending to list)
+
 
         # 2. Detect Fit Type
         fit_type = self._detect_fit_type(description)
@@ -248,7 +349,9 @@ class SizeRecommender:
             "weight": -1
         }
         
-        reasons = []
+        
+        # reasons = [] (Moved to top)
+
 
         # --- Metric A: Shoulder ---
         if u_shoulder > 0:
@@ -485,6 +588,31 @@ class SizeRecommender:
         if ease_allowance > 0:
             report_lines.append(f"Katman Payı: Dış/orta katman giyimi için {ease_allowance}cm pay eklendi.")
 
+        # --- Arm Length Check (Tops) ---
+        if category == "top" and u_arm_length > 0:
+            # Simple Heuristic: Standard Sleeve Length increases with size. 
+            # S: ~63, M: ~64, L: ~65, XL: ~66
+            # If User Arm > 66 and Size < XL, warn.
+            if u_arm_length > 66 and final_idx < 5: 
+                report_lines.append(f"(!) Kol Boyu ({u_arm_length}cm): Standarttan uzun, kol kısa gelebilir.")
+
+        # --- Model Comparison ---
+        model_h_str = product_data.get("model_height")
+        if model_h_str:
+             try:
+                 # Clean string "1.76" -> 176
+                 mh = float(model_h_str.replace("cm", "").strip())
+                 if mh < 3: mh *= 100 # Convert m to cm
+                 
+                 diff = u_height - mh
+                 if diff > 5:
+                     report_lines.append(f"Model Analizi: Modelden {int(diff)}cm daha uzunsunuz.")
+                     model_size = product_data.get("model_size", "").upper()
+                     if model_size and "S" in model_size and final_idx <= 2:
+                         report_lines.append("Model S giyiyor, sizin boy farkınız nedeniyle M tercih edilebilir.")
+             except:
+                 pass
+
         final_label = get_label(final_idx)
         
         # 7. Final Confidence
@@ -495,7 +623,13 @@ class SizeRecommender:
         fit_message = f"{final_label} Beden Öneriyoruz."
         
         # --- Specific Pant Recommendation (User Request) ---
-        if category == "bottom":
+        # Only use Numeric (W/L) for strict Pants/Jeans. 
+        # For Sweatpants (Eşofman), Shorts (Şort) etc. keep S/M/L.
+        is_pant = any(x in str(product_data).lower() for x in ["jean", "pantolon", "pant", "denim", "trouser", "chino", "cargo", "slacks"])
+        is_sweatpant = "eşofman" in str(product_data).lower() or "jogger" in str(product_data).lower() or "sweatpant" in str(product_data).lower()
+        
+        # Override: If it looks like a pant but is explicitly sweatpant, default to S/M/L unless user wants W/L? usually S/M/L.
+        if category == "bottom" and is_pant and not is_sweatpant:
              # Calculate Numeric Waist (Inch)
              # Waist cm / 2.54
              # E.g. 80cm / 2.54 = ~31.5 -> 31 or 32
@@ -503,10 +637,15 @@ class SizeRecommender:
              w_inch = round(target_waist / 2.54)
              
              # Calculate Inseam (Leg Length)
-             # Heuristic: Inseam ~ Height * 0.45 (Men/Women average varies, but 0.45 is rough norm)
-             # If we had real leg measurements, we'd use them.
-             leg_len_cm = u_height * 0.45
-             l_inch = round(leg_len_cm / 2.54)
+             if u_inseam > 0:
+                 leg_len_cm = u_inseam
+                 l_inch = round(leg_len_cm / 2.54)
+                 report_lines.append(f"İç Bacak: {u_inseam}cm verisi kullanıldı -> L{l_inch}")
+             else:
+                 # Heuristic: Inseam ~ Height * 0.45 
+                 leg_len_cm = u_height * 0.45
+                 l_inch = round(leg_len_cm / 2.54)
+                 report_lines.append(f"İç Bacak (Tahmini): Boy {u_height}cm * 0.45 -> L{l_inch}")
              
              # Format strict user request: "pantolon bedeniniz bacak boyunuza gore 30 bedendır"
              # We will try to match this phrasing but include Waist too as that's the primary "Size" (Beden).
@@ -516,9 +655,11 @@ class SizeRecommender:
              pant_msg = f"Pantolon tercihinde: Bel ölçünüze göre {w_inch}, Bacak boyunuza göre {l_inch} Boy önerilir."
              report_lines.append(f"Pantolon Hesabı: Bel {u_waist}cm -> W{w_inch}, Boy {u_height}cm -> L{l_inch}")
              
-             # Users often confuse 'Beden' with just Wait or just "Size".
-             # If the final_label is generic (M, L), we append this specific info.
-             fit_message = f"{final_label} ({w_inch} Beden, {l_inch} Boy)"
+             # OVERRIDE: Return Numeric Size "30", "31" etc. instead of "S", "M"
+             final_label = str(w_inch)
+
+             # Update fit message
+             fit_message = f"{final_label} Beden Öneriyoruz ({l_inch} Boy)"
              
              # Override detail report message to be very specific as requested
              # "ornegın pantolon bedenınızız bacak boyunuza gore 30 bedendır"

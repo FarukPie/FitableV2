@@ -9,6 +9,10 @@ class UserMeasurement {
   final double footLength;
   final String gender;
   final String? bodyShape;
+  final double armLength;
+  final double handSpan;
+  final String? referenceBrand;
+  final String? referenceSizeLabel;
 
   UserMeasurement({
     required this.height,
@@ -21,6 +25,10 @@ class UserMeasurement {
     required this.footLength,
     required this.gender,
     this.bodyShape,
+    this.armLength = 0,
+    this.handSpan = 0,
+    this.referenceBrand,
+    this.referenceSizeLabel,
   });
 
   factory UserMeasurement.fromJson(Map<String, dynamic> json) {
@@ -35,6 +43,10 @@ class UserMeasurement {
       footLength: (json['foot_length'] as num?)?.toDouble() ?? 0.0,
       gender: json['gender'] ?? 'male',
       bodyShape: json['body_shape'], // Optional
+      armLength: (json['arm_length'] as num?)?.toDouble() ?? 0.0,
+      handSpan: (json['hand_span_cm'] as num?)?.toDouble() ?? 0.0,
+      referenceBrand: json['reference_brand'],
+      referenceSizeLabel: json['reference_size_label'],
     );
   }
 
@@ -47,9 +59,13 @@ class UserMeasurement {
       'hips': hips,
       'shoulder': shoulder,
       'inseam': legLength, // Backend uses 'inseam'
+      'arm_length': armLength,
       'foot_length': footLength,
       'gender': gender,
       'body_shape': bodyShape,
+      'hand_span_cm': handSpan,
+      'reference_brand': referenceBrand,
+      'reference_size_label': referenceSizeLabel,
     };
   }
 }

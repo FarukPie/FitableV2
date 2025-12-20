@@ -13,7 +13,13 @@ class UserMeasurementCreate(BaseModel):
     arm_length: Optional[float] = None
     inseam: Optional[float] = None
     foot_length: Optional[float] = None
+    foot_length: Optional[float] = None
     body_shape: Optional[str] = None # 'rectangular', 'triangle', 'inverted_triangle', 'oval'
+    # Precision Features
+    hand_span_cm: Optional[float] = None
+    reference_brand: Optional[str] = None # Name of the brand (e.g. "Zara")
+    reference_size_label: Optional[str] = None # e.g. "M", "32"
+    garment_width_spans: Optional[float] = None # If user calibrated garment width
 
     class Config:
         from_attributes = True
@@ -82,7 +88,25 @@ class ProductScrapeResult(BaseModel):
     description: str
     product_url: str
     fabric_composition: Optional[str] = None
+    model_height: Optional[str] = None
+    model_size: Optional[str] = None
     error: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class UserReferenceCreate(BaseModel):
+    user_id: str
+    brand: str
+    size_label: str
+
+
+class UserReferenceResponse(BaseModel):
+    id: int
+    user_id: str
+    brand: str
+    size_label: str
+    created_at: Optional[str] = None
 
     class Config:
         from_attributes = True

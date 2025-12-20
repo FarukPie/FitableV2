@@ -25,26 +25,27 @@ class RecommendationRequest(BaseModel):
 
 @router.post("/recommend")
 async def get_recommendation(request: RecommendationRequest) -> Dict[str, Any]:
-    # 1. Scrape Product Data
-    scraper = ProductScraper()
-    url_str = str(request.url)
-    product_data = await scraper.scrape_product(url_str)
-    
-    if product_data.get("error"):
-         # We might still proceed if partial data is there, or fail.
-         # For now, if no brand detected, recommendation might fail.
-         pass
+    try:
+        # 1. Scrape Product Data
+        scraper = ProductScraper()
+        url_str = str(request.url)
+        product_data = await scraper.scrape_product(url_str)
+        
+        if product_data.get("error"):
+             # We might still proceed if partial data is there, or fail.
+             # For now, if no brand detected, recommendation might fail.
+             pass
 
-    # 2. Get Recommendation
-    recommender = SizeRecommender(supabase)
-    recommendation = recommender.get_recommendation(request.user_id, product_data)
-    
-    # 3. Save to History (Removed: Now manual)
-    # logic moved to POST /history/add
-
-
-    # 4. Combine Response
-    return {
-        "product": product_data,
-        "recommendation": recommendation
-    }
+        # 2. Get Recommendation
+        recommender = SizeRecommender(supabase)
+        recommendation = recommender.get_recommendation(request.user_id, product_data)
+        
+        # 4. Combine Response
+        return {
+            "product": product_data,
+            "recommendation": recommendation
+        }
+    except Exception as e:
+        print(f"CRITICAL ROUTER ERROR: {e}")
+        # Return a clean JSON error that ApiService can parse
+        raise HTTPException(status_code=500, detail=f"Sunucu Hatası: {str(e)}")

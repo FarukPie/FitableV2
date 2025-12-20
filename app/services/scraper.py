@@ -60,8 +60,8 @@ class ProductScraper:
     async def scrape_product(self, url: str) -> Dict[str, str]:
         # Wrapper to enforce concurrency limit
         async with self._semaphore:
-            # Pre-resolve short links (ty.gl)
-            if "ty.gl" in url:
+            # Pre-resolve short links (ty.gl, tyml.gl)
+            if "ty.gl" in url or "tyml.gl" in url:
                 try:
                     resolved_url = await asyncio.to_thread(self._resolve_short_link, url)
                     if resolved_url:
@@ -97,8 +97,9 @@ class ProductScraper:
                 
                 # STEALTH: Real User-Agent and Viewport
                 context = await browser.new_context(
-                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                    locale="tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7", # Localized
+                    # Modern User-Agent (P&B Sensitive)
+                    user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    locale="tr-TR;q=0.9,en-US;q=0.8,en;q=0.7", # Localized
                     viewport={"width": 1920, "height": 1080},
                     device_scale_factor=1,
                     has_touch=False,
@@ -159,19 +160,26 @@ class ProductScraper:
                     "product_url": url,
                 }
 
-                # RESOURCE OPTIMIZATION: Block unnecessary resources
-                # Relaxed: Allowing images to prevent layout issues/bot detection
-                await page.route("**/*", lambda route: route.abort() 
-                    if route.request.resource_type in ["stylesheet", "font", "media"] 
-                    else route.continue_()
-                )
+                # RESOURCE OPTIMIZATION
+                # P&B and some sites detect resource blocking as bot behavior. 
+                # Relaxing blocking for P&B to pass anti-bot.
+                if "pullandbear" in url or "trendyol" in url or "voidtr" in url:
+                     # Do not block resources for these sites
+                     pass 
+                else:
+                    await page.route("**/*", lambda route: route.abort() 
+                        if route.request.resource_type in ["stylesheet", "font", "media"] 
+                        else route.continue_()
+                    )
+
+                # STEALTH: Optimized for speed - Minimal delay
 
                 # STEALTH: Optimized for speed - Minimal delay
                 await asyncio.sleep(random.uniform(0.1, 0.3))
                 
-                # Reduced timeout to 30s to fail faster and release resources
+                # Reduced timeout to 20s to fail faster and allow backend to respond before mobile app timeout (30s)
                 try:
-                    await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                    await page.goto(url, wait_until="domcontentloaded", timeout=20000)
                     # CAPTURE FINAL URL (Crucial for short links like ty.gl)
                     data["product_url"] = page.url 
                 except Exception as e:
@@ -254,6 +262,9 @@ class ProductScraper:
                 # 5. Extract Fabric (Post-processing check)
                 if not data.get("fabric_composition"):
                     self._extract_fabric_composition(soup, data)
+                
+                # 6. Extract Model Info
+                self._extract_model_info(soup, data)
                 
                 print(f"Final Data: {data}")
                 
@@ -418,6 +429,22 @@ class ProductScraper:
 
     def _scrape_trendyol_specific(self, soup, data):
         # Trendyol specific selectors
+        
+        # 1. EXTRACT BRAND from Page (Override domain-based 'Trendyol')
+        # Typical structure: <h1 class="pr-new-br"><a href="/zara-x-..." >Zara</a> <span>Product Name</span></h1>
+        # Or: <span class="brand-text">Zara</span>
+        
+        extracted_brand = None
+        for sel in ["h1.pr-new-br a", ".product-brand-name-with-link", "a.brand-name", ".brand-text"]:
+            tag = soup.select_one(sel)
+            if tag:
+                extracted_brand = self._clean_text(tag.get_text())
+                break
+        
+        if extracted_brand:
+            print(f"DEBUG: Overriding Brand '{data['brand']}' -> '{extracted_brand}'")
+            data["brand"] = extracted_brand
+
         if not data["product_name"]:
              # Often in h1.pr-new-br or .product-name
              for sel in ["h1.pr-new-br span", "h1.pr-new-br", ".product-name", "h1"]:
@@ -447,30 +474,36 @@ class ProductScraper:
 
     def _scrape_pullandbear_specific(self, soup, data):
         # Pull & Bear Specific Selectors
-        if not data["product_name"]:
-             for sel in ["h1.product-name", ".product-detail-info__name", "h1", ".pdp-title"]:
-                 tag = soup.select_one(sel)
-                 if tag:
-                     data["product_name"] = self._clean_text(tag.get_text())
-                     break
-        
-        if not data["price"]:
-             for sel in [".price-current", ".product-detail-info__price", ".price__amount", ".current-price"]:
-                 tag = soup.select_one(sel)
-                 if tag:
-                     data["price"] = self._clean_text(tag.get_text())
-                     break
-        
-        if not data["image_url"]:
-             # P&B usually has grid images
-             # .product-image img, .slider-image img
-             for sel in [".product-image img", ".carousel-item img", "img.c-product-card__image", ".product-detail-images img"]:
-                 tag = soup.select_one(sel)
-                 if tag:
-                      src = tag.get("src")
-                      if src:
-                         data["image_url"] = src
+        try:
+            if not data["product_name"]:
+                 # Try multiple selectors
+                 for sel in ["h1.product-name", ".product-detail-info__name", "h1", ".pdp-title", ".c-product-card__title"]:
+                     tag = soup.select_one(sel)
+                     if tag:
+                         data["product_name"] = self._clean_text(tag.get_text())
                          break
+            
+            if not data["price"]:
+                 for sel in [".price-current", ".product-detail-info__price", ".price__amount", ".current-price", ".c-price__current"]:
+                     tag = soup.select_one(sel)
+                     if tag:
+                         data["price"] = self._clean_text(tag.get_text())
+                         break
+            
+            if not data["image_url"]:
+                 # P&B usually has grid images
+                 # .product-image img, .slider-image img
+                 for sel in [".product-image img", ".carousel-item img", "img.c-product-card__image", ".product-detail-images img", ".c-product-image__img"]:
+                     tag = soup.select_one(sel)
+                     if tag:
+                          src = tag.get("src") or tag.get("data-src")
+                          if src:
+                             data["image_url"] = src
+                             break
+        except Exception as e:
+            print(f"Error in P&B specific scraper: {e}")
+            # Do not crash the whole scraping flow
+            pass
 
         # Extract Fit Advice (Orange Box)
         # Search for text "Kullanıcıların çoğu"
@@ -647,3 +680,55 @@ class ProductScraper:
             # Simplest: Just take the longest string found that looks like a composition
             best_match = max(candidates, key=len)
             data["fabric_composition"] = self._clean_text(best_match)
+
+    def _extract_model_info(self, soup, data):
+        """
+        Extracts model's height and worn size from descriptions.
+        """
+        import re
+        
+        # Search anywhere in text (descriptions, specialized boxes)
+        texts_to_search = []
+        
+        # 1. Product Description
+        if data.get("description"):
+            texts_to_search.append(data["description"])
+
+        # 2. Specific 'ModelInfo' sections (Trendyol uses ul/li often)
+        # Search for keywords in the whole soup text if description missed it
+        # Efficient way: Search for "Modelin Ölçüleri" text node
+        model_headers = soup.find_all(string=re.compile("(Modelin Ölçüleri|Manken Bilgisi|Model Information)", re.IGNORECASE))
+        for header in model_headers:
+            # Add parent text
+            if header.parent:
+                texts_to_search.append(header.parent.get_text())
+                # Add siblings
+                for sib in header.parent.find_next_siblings():
+                    texts_to_search.append(sib.get_text())
+        
+        full_text = " ".join(texts_to_search)
+
+        # Regex for Height: "Boy: 1.76", "176 cm", "Height: 180"
+        # Patterns: 
+        # 1. Boy[:\s]*1[.,]\d{2}
+        # 2. \d{3}\s*cm
+        height_pattern = re.compile(r"(?:Boy|Height)[:\s]*(1[.,]\d{2})|(\d{3})\s*cm", re.IGNORECASE)
+        
+        height_match = height_pattern.search(full_text)
+        if height_match:
+            # Group 1 (1.76) or Group 2 (176)
+            h_str = height_match.group(1) or height_match.group(2)
+            # Normalize to cm? Recommendation engine expects int/float usually, but scraper stores str
+            # Let's keep it robust as string "1.76" or "176"
+            data["model_height"] = h_str
+        
+        # Regex for Worn Size: "Numune Bedeni: S/36", "Size: M"
+        # Pattern: (Numune Bedeni|Beden|Size)[:\s]*([A-Z0-9/]+)
+        # Be careful not to capture simple "Beden" table headers.
+        size_pattern = re.compile(r"(?:Numune Bedeni|Wears|Model wears)[:\s]*([A-Z0-9/]+)", re.IGNORECASE)
+        
+        size_match = size_pattern.search(full_text)
+        if size_match:
+             data["model_size"] = size_match.group(1)
+
+        print(f"Model Info Extraction: Height={data.get('model_height')}, Size={data.get('model_size')}")

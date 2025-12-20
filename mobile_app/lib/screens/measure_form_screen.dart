@@ -24,6 +24,10 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
   final _hipsController = TextEditingController(); // Hidden but kept for model compatibility
   final _shoulderController = TextEditingController();
   final _legLengthController = TextEditingController();
+  final _armLengthController = TextEditingController();
+  final _handSpanController = TextEditingController(); // For manual calibration
+  final _refBrandController = TextEditingController();
+  final _refSizeController = TextEditingController();
   
   // Body Shape (Read Only)
   String? _currentBodyShape;
@@ -43,6 +47,10 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
     if (height != null && height > 0) {
       setState(() {
         _estimatedHandSpan = height * 0.125;
+        // Only auto-fill if empty to allow custom override
+        if (_handSpanController.text.isEmpty) {
+             _handSpanController.text = _estimatedHandSpan.toStringAsFixed(1);
+        }
       });
     } else {
        setState(() {
@@ -91,13 +99,19 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
     _hipsController.dispose();
     _shoulderController.dispose();
     _legLengthController.dispose();
+    _armLengthController.dispose();
+    _handSpanController.dispose();
+    _refBrandController.dispose();
+    _refSizeController.dispose();
     super.dispose();
   }
 
   Future<void> _loadMeasurements() async {
-    final measurements = await Provider.of<AppProvider>(context, listen: false).fetchMeasurements();
+    final provider = Provider.of<AppProvider>(context, listen: false);
+    final measurements = await provider.fetchMeasurements();
+    await provider.fetchReferences(); // Load references
+
     if (measurements != null) {
-      setState(() {
         _heightController.text = measurements.height.toString();
         _weightController.text = measurements.weight.toString();
         _chestController.text = measurements.chest.toString();
@@ -105,17 +119,25 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
         _hipsController.text = measurements.hips.toString();
         _shoulderController.text = measurements.shoulder.toString();
         _legLengthController.text = measurements.legLength.toString();
-        // _footLengthController.text = measurements.footLength.toString(); // Removed UI
-        _currentBodyShape = measurements.bodyShape;
+        _armLengthController.text = measurements.armLength > 0 ? measurements.armLength.toString() : "";
+        _handSpanController.text = measurements.handSpan > 0 ? measurements.handSpan.toString() : "";
         
-        // Show full form if data exists
-        _showFullForm = true;
-      });
+        if (measurements.handSpan > 0) {
+             _estimatedHandSpan = measurements.handSpan;
+             _isHandSpanMode = true;
+        }
+        _currentBodyShape = measurements.bodyShape;
     }
+    
+    // Always show form after loading attempts
+    setState(() {
+        _showFullForm = true;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<AppProvider>(context);
     return PopScope(
       canPop: !widget.isInitialSetup,
       child: Scaffold(
@@ -410,7 +432,90 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                                _buildDynamicInput(AppLocalizations.of(context)!.legLengthLabel, _legLengthController,
                                    guideTitle: AppLocalizations.of(context)!.howToMeasureTitle,
                                    guideText: AppLocalizations.of(context)!.legLengthMeasureGuide),
-                               // Foot length removed as per request
+
+                               const SizedBox(height: 16),
+                               _buildDynamicInput("Kol Boyu (Arm Length)", _armLengthController,
+                                   guideTitle: "Nasıl Ölçülür?",
+                                   guideText: "Omzunuzun bittiği yerden bileğinize kadar olan uzunluğu ölçün."),
+                                   
+                               const SizedBox(height: 32),
+                               _buildSectionTitle("Hassas Ayarlar (İsteğe Bağlı)"),
+                               const SizedBox(height: 12),
+                               
+                               // Multiple Reference Brands
+                               Container(
+                                 padding: const EdgeInsets.all(16),
+                                 decoration: BoxDecoration(
+                                    color: (Theme.of(context).cardTheme.color ?? Colors.white).withOpacity(0.5),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: Colors.grey.withOpacity(0.2))
+                                 ),
+                                 child: Column(
+                                   crossAxisAlignment: CrossAxisAlignment.start,
+                                   children: [
+                                      Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                              const Text("Referans Markalar", style: TextStyle(fontWeight: FontWeight.bold)),
+                                              IconButton(
+                                                  icon: const Icon(Icons.add_circle, color: Colors.blueAccent),
+                                                  onPressed: () => _showAddReferenceDialog(context, provider),
+                                                  tooltip: "Referans Ekle",
+                                              )
+                                          ]
+                                      ),
+                                      const SizedBox(height: 4),
+                                      const Text("Size tam olan markaları ekleyin (Örn: Zara M, Adidas L). Ne kadar çok eklerseniz o kadar iyi sonuç alırsınız.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                      const SizedBox(height: 12),
+                                      
+                                      // List of References
+                                      if (provider.references.isEmpty)
+                                           const Text("Henüz referans eklenmedi.", style: TextStyle(fontStyle: FontStyle.italic, color: Colors.white54)),
+                                      
+                                      ...provider.references.map((ref) => Container(
+                                          margin: const EdgeInsets.only(bottom: 8),
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          decoration: BoxDecoration(
+                                              color: Colors.black.withOpacity(0.2),
+                                              borderRadius: BorderRadius.circular(8)
+                                          ),
+                                          child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                  Text("${ref.brand} - ${ref.sizeLabel}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                                                  IconButton(
+                                                      icon: const Icon(Icons.close, size: 18, color: Colors.redAccent),
+                                                      onPressed: () => provider.deleteReference(ref.id),
+                                                      padding: EdgeInsets.zero,
+                                                      constraints: const BoxConstraints(),
+                                                  )
+                                              ]
+                                          ),
+                                      )).toList(),
+                                   ],
+                                 ),
+                               ),
+                               const SizedBox(height: 16),
+                               
+                               // Hand Span Calibration
+                               if (_isHandSpanMode)
+                                 Container(
+                                   padding: const EdgeInsets.all(16),
+                                   decoration: BoxDecoration(
+                                      color: Theme.of(context).primaryColor.withOpacity(0.05),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.3))
+                                   ),
+                                   child: Column(
+                                      children: [
+                                         const Text("Karış Kalibrasyonu", style: TextStyle(fontWeight: FontWeight.bold)),
+                                         const SizedBox(height: 8),
+                                         _buildInput("Karış Uzunluğu (cm)", _handSpanController, 
+                                             guideTitle: "Karış Nasıl Ölçülür?",
+                                             guideText: "Baş parmağınız ile serçe parmağınız arasındaki en uzak mesafeyi ölçün.")
+                                      ],
+                                   ),
+                                 ),
                               ],
                             ),
                           ),
@@ -643,6 +748,11 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
         legLength: _convertVal(_legLengthController.text),
         footLength: 0.0, // Removed UI, default to 0
         gender: Provider.of<AppProvider>(context, listen: false).user!.gender,
+        
+        armLength: _convertVal(_armLengthController.text),
+        handSpan: _convertVal(_handSpanController.text), // Use explicit controller value if present
+        referenceBrand: _refBrandController.text.isNotEmpty ? _refBrandController.text : null,
+        referenceSizeLabel: _refSizeController.text.isNotEmpty ? _refSizeController.text : null,
 
       );
 
@@ -780,6 +890,47 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+
+  void _showAddReferenceDialog(BuildContext context, AppProvider provider) {
+    String tempBrand = "";
+    String tempSize = "";
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Referans Ekle"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+             TextField(
+               decoration: const InputDecoration(labelText: "Marka (Örn: Mavi)"),
+               onChanged: (val) => tempBrand = val,
+             ),
+             TextField(
+               decoration: const InputDecoration(labelText: "Beden (Örn: L)"),
+               onChanged: (val) => tempSize = val,
+             ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("İptal"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (tempBrand.isNotEmpty && tempSize.isNotEmpty) {
+                 await provider.addReference(tempBrand, tempSize);
+                 Navigator.pop(context);
+              }
+            },
+            child: const Text("Ekle"),
+          ),
+        ],
+      ),
+    );
   }
 }
 

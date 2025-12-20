@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from app.core.config import supabase, settings
-from app.models.schemas import UserMeasurementCreate, HistoryItemCreate
+from app.models.schemas import UserMeasurementCreate, HistoryItemCreate, UserReferenceCreate
 from supabase import create_client
 import os
 
@@ -144,4 +144,32 @@ async def delete_history_item(item_id: str):
         return {"status": "success", "data": response.data}
     except Exception as e:
         print(f"Error deleting history item: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/references/{user_id}")
+async def get_user_references(user_id: str):
+    try:
+        response = supabase.table("user_references").select("*").eq("user_id", user_id).order("brand", desc=False).execute()
+        return {"status": "success", "data": response.data}
+    except Exception as e:
+        print(f"Error fetching references: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/references")
+async def add_reference(ref: UserReferenceCreate):
+    try:
+        data = ref.model_dump()
+        response = supabase.table("user_references").insert(data).execute()
+        return {"status": "success", "data": response.data}
+    except Exception as e:
+        print(f"Error adding reference: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/references/{ref_id}")
+async def delete_reference(ref_id: int):
+    try:
+        response = supabase.table("user_references").delete().eq("id", ref_id).execute()
+        return {"status": "success", "data": response.data}
+    except Exception as e:
+        print(f"Error deleting reference: {e}")
         raise HTTPException(status_code=500, detail=str(e))
