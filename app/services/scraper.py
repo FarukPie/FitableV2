@@ -42,9 +42,33 @@ class ProductScraper:
             return ""
         return text.strip().replace('\n', ' ').replace('\r', '')
 
+    @staticmethod
+    def _resolve_short_link(url: str) -> str:
+        """Resolves short links (like ty.gl) to their final destination."""
+        try:
+            import urllib.request
+            req = urllib.request.Request(
+                url, 
+                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+            )
+            with urllib.request.urlopen(req, timeout=10) as response:
+                return response.geturl()
+        except Exception as e:
+            print(f"Short link resolution failed for {url}: {e}")
+            return url
+
     async def scrape_product(self, url: str) -> Dict[str, str]:
         # Wrapper to enforce concurrency limit
         async with self._semaphore:
+            # Pre-resolve short links (ty.gl)
+            if "ty.gl" in url:
+                try:
+                    resolved_url = await asyncio.to_thread(self._resolve_short_link, url)
+                    if resolved_url:
+                        url = resolved_url
+                except Exception:
+                    pass
+            
             return await self._scrape_product_impl(url)
 
     async def _scrape_product_impl(self, url: str) -> Dict[str, str]:
