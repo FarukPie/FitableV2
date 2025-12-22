@@ -228,7 +228,9 @@ class ApiService {
           'image_url': result.imageUrl,
           'price': '', 
           'recommended_size': result.recommendedSize,
-          'confidence_score': result.confidenceScore,
+          'confidence_score': result.sizePercentages.isNotEmpty 
+              ? result.sizePercentages.values.first / 100.0  // Convert top % to decimal
+              : 0.9,
         }),
       ).timeout(const Duration(seconds: 30));
 

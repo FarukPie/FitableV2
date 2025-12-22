@@ -56,7 +56,7 @@ class ResultScreen extends StatelessWidget {
             ),
             const SizedBox(height: 30),
 
-            // Recommendation Card
+            // Recommendation Card with Size Percentages
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -76,11 +76,53 @@ class ResultScreen extends StatelessWidget {
                       color: Theme.of(context).primaryColor,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    "${AppLocalizations.of(context)!.confidenceLabel}: ${(result.confidenceScore * 100).toStringAsFixed(0)}%",
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
+                  const SizedBox(height: 20),
+                  // Size Compatibility Percentages
+                  if (result.sizePercentages.isNotEmpty)
+                    ...result.sizePercentages.entries.map((entry) {
+                      final isTop = entry.key == result.recommendedSize;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 50,
+                              child: Text(
+                                entry.key,
+                                style: TextStyle(
+                                  fontWeight: isTop ? FontWeight.bold : FontWeight.normal,
+                                  color: isTop ? Theme.of(context).primaryColor : Colors.grey,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: LinearProgressIndicator(
+                                  value: entry.value / 100,
+                                  minHeight: 20,
+                                  backgroundColor: Colors.grey.withOpacity(0.2),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    isTop ? Theme.of(context).primaryColor : Colors.grey.withOpacity(0.5),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            SizedBox(
+                              width: 45,
+                              child: Text(
+                                "%${entry.value}",
+                                style: TextStyle(
+                                  fontWeight: isTop ? FontWeight.bold : FontWeight.normal,
+                                  color: isTop ? Theme.of(context).primaryColor : Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
                 ],
               ),
             ),

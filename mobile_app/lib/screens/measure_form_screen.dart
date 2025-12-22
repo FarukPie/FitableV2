@@ -21,7 +21,7 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
   final _weightController = TextEditingController();
   final _chestController = TextEditingController();
   final _waistController = TextEditingController();
-  final _hipsController = TextEditingController(); // Hidden but kept for model compatibility
+  final _hipsController = TextEditingController(); // Kalça - important for pants
   final _shoulderController = TextEditingController();
   final _legLengthController = TextEditingController();
   final _armLengthController = TextEditingController();
@@ -429,10 +429,37 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                                    guideTitle: AppLocalizations.of(context)!.howToMeasureTitle,
                                    guideText: AppLocalizations.of(context)!.waistMeasureGuide),
                                const SizedBox(height: 16),
-                               _buildDynamicInput(AppLocalizations.of(context)!.legLengthLabel, _legLengthController,
-                                   guideTitle: AppLocalizations.of(context)!.howToMeasureTitle,
-                                   guideText: AppLocalizations.of(context)!.legLengthMeasureGuide),
+                               // İç Bacak - Pantolon için kritik
+                               Container(
+                                 padding: const EdgeInsets.all(12),
+                                 decoration: BoxDecoration(
+                                   color: Theme.of(context).primaryColor.withOpacity(0.1),
+                                   borderRadius: BorderRadius.circular(12),
+                                   border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.3)),
+                                 ),
+                                 child: Column(
+                                   crossAxisAlignment: CrossAxisAlignment.start,
+                                   children: [
+                                     Row(
+                                       children: [
+                                         Icon(Icons.straighten, color: Theme.of(context).primaryColor, size: 18),
+                                         const SizedBox(width: 8),
+                                         Text("Pantolon İçin Önemli!", style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
+                                       ],
+                                     ),
+                                     const SizedBox(height: 8),
+                                     _buildDynamicInput(AppLocalizations.of(context)!.legLengthLabel, _legLengthController,
+                                       guideTitle: AppLocalizations.of(context)!.howToMeasureTitle,
+                                       guideText: AppLocalizations.of(context)!.legLengthMeasureGuide),
+                                   ],
+                                 ),
+                               ),
 
+                               const SizedBox(height: 16),
+                               // Kalça - Pantolon için önemli (özellikle kadınlar için)
+                               _buildDynamicInput("Kalça (Hip)", _hipsController,
+                                   guideTitle: "Nasıl Ölçülür?",
+                                   guideText: "Kalçanızın en geniş noktasından ölçün. Mezura kalça kemiğinizin üzerinden geçmeli."),
                                const SizedBox(height: 16),
                                _buildDynamicInput("Kol Boyu (Arm Length)", _armLengthController,
                                    guideTitle: "Nasıl Ölçülür?",

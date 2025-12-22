@@ -3,21 +3,60 @@ from supabase import Client
 from app.data import zara_sizes
 
 class SizeRecommender:
-    UNIVERSAL_SIZE_CHART = [
-        {"size_label": "XXS", "category": "top", "min_chest": 70, "max_chest": 78, "min_waist": 58, "max_waist": 66},
-        {"size_label": "XS", "category": "top", "min_chest": 78, "max_chest": 86, "min_waist": 66, "max_waist": 74},
-        {"size_label": "S", "category": "top", "min_chest": 86, "max_chest": 94, "min_waist": 74, "max_waist": 82},
-        {"size_label": "M", "category": "top", "min_chest": 94, "max_chest": 102, "min_waist": 82, "max_waist": 90},
-        {"size_label": "L", "category": "top", "min_chest": 102, "max_chest": 110, "min_waist": 90, "max_waist": 98},
-        {"size_label": "XL", "category": "top", "min_chest": 110, "max_chest": 118, "min_waist": 98, "max_waist": 106},
-        {"size_label": "XXL", "category": "top", "min_chest": 118, "max_chest": 126, "min_waist": 106, "max_waist": 114},
-        # Bottoms
-        {"size_label": "XS", "category": "bottom", "min_waist": 66, "max_waist": 74, "min_hip": 86, "max_hip": 94},
-        {"size_label": "S", "category": "bottom", "min_waist": 74, "max_waist": 82, "min_hip": 94, "max_hip": 102},
-        {"size_label": "M", "category": "bottom", "min_waist": 82, "max_waist": 90, "min_hip": 102, "max_hip": 110},
-        {"size_label": "L", "category": "bottom", "min_waist": 90, "max_waist": 98, "min_hip": 110, "max_hip": 118},
-        {"size_label": "XL", "category": "bottom", "min_waist": 98, "max_waist": 106, "min_hip": 118, "max_hip": 126},
+    # Erkek Beden Tablosu - Daha geniş omuz/göğüs, düz kalça
+    MALE_SIZE_CHART = [
+        # Tops - Erkek (Büyük göğüs, omuz genişliği)
+        {"size_label": "XS", "category": "top", "min_chest": 84, "max_chest": 90, "min_waist": 70, "max_waist": 76},
+        {"size_label": "S", "category": "top", "min_chest": 90, "max_chest": 96, "min_waist": 76, "max_waist": 82},
+        {"size_label": "M", "category": "top", "min_chest": 96, "max_chest": 102, "min_waist": 82, "max_waist": 88},
+        {"size_label": "L", "category": "top", "min_chest": 102, "max_chest": 108, "min_waist": 88, "max_waist": 94},
+        {"size_label": "XL", "category": "top", "min_chest": 108, "max_chest": 116, "min_waist": 94, "max_waist": 102},
+        {"size_label": "XXL", "category": "top", "min_chest": 116, "max_chest": 124, "min_waist": 102, "max_waist": 110},
+        # Bottoms - Erkek (Bel ön planda, düz kalça)
+        {"size_label": "XS", "category": "bottom", "min_waist": 70, "max_waist": 76, "min_hip": 88, "max_hip": 94},
+        {"size_label": "S", "category": "bottom", "min_waist": 76, "max_waist": 82, "min_hip": 94, "max_hip": 100},
+        {"size_label": "M", "category": "bottom", "min_waist": 82, "max_waist": 88, "min_hip": 100, "max_hip": 106},
+        {"size_label": "L", "category": "bottom", "min_waist": 88, "max_waist": 94, "min_hip": 106, "max_hip": 112},
+        {"size_label": "XL", "category": "bottom", "min_waist": 94, "max_waist": 102, "min_hip": 112, "max_hip": 120},
+        {"size_label": "XXL", "category": "bottom", "min_waist": 102, "max_waist": 110, "min_hip": 120, "max_hip": 128},
     ]
+    
+    # Kadın Beden Tablosu - Daha dar omuz, belirgin kalça
+    FEMALE_SIZE_CHART = [
+        # Tops - Kadın (Küçük omuz, göğüs çevresi farklı hesap)
+        {"size_label": "XXS", "category": "top", "min_chest": 76, "max_chest": 80, "min_waist": 58, "max_waist": 62},
+        {"size_label": "XS", "category": "top", "min_chest": 80, "max_chest": 84, "min_waist": 62, "max_waist": 66},
+        {"size_label": "S", "category": "top", "min_chest": 84, "max_chest": 88, "min_waist": 66, "max_waist": 70},
+        {"size_label": "M", "category": "top", "min_chest": 88, "max_chest": 94, "min_waist": 70, "max_waist": 76},
+        {"size_label": "L", "category": "top", "min_chest": 94, "max_chest": 100, "min_waist": 76, "max_waist": 82},
+        {"size_label": "XL", "category": "top", "min_chest": 100, "max_chest": 108, "min_waist": 82, "max_waist": 90},
+        {"size_label": "XXL", "category": "top", "min_chest": 108, "max_chest": 116, "min_waist": 90, "max_waist": 98},
+        # Bottoms - Kadın (Kalça ön planda, bel ikincil)
+        {"size_label": "XXS", "category": "bottom", "min_waist": 58, "max_waist": 62, "min_hip": 84, "max_hip": 88},
+        {"size_label": "XS", "category": "bottom", "min_waist": 62, "max_waist": 66, "min_hip": 88, "max_hip": 92},
+        {"size_label": "S", "category": "bottom", "min_waist": 66, "max_waist": 70, "min_hip": 92, "max_hip": 96},
+        {"size_label": "M", "category": "bottom", "min_waist": 70, "max_waist": 76, "min_hip": 96, "max_hip": 102},
+        {"size_label": "L", "category": "bottom", "min_waist": 76, "max_waist": 82, "min_hip": 102, "max_hip": 108},
+        {"size_label": "XL", "category": "bottom", "min_waist": 82, "max_waist": 90, "min_hip": 108, "max_hip": 116},
+        {"size_label": "XXL", "category": "bottom", "min_waist": 90, "max_waist": 98, "min_hip": 116, "max_hip": 124},
+    ]
+    
+    # Fallback for unknown gender (average of male/female)
+    UNIVERSAL_SIZE_CHART = [
+        {"size_label": "XS", "category": "top", "min_chest": 80, "max_chest": 88, "min_waist": 66, "max_waist": 74},
+        {"size_label": "S", "category": "top", "min_chest": 88, "max_chest": 94, "min_waist": 74, "max_waist": 80},
+        {"size_label": "M", "category": "top", "min_chest": 94, "max_chest": 100, "min_waist": 80, "max_waist": 86},
+        {"size_label": "L", "category": "top", "min_chest": 100, "max_chest": 108, "min_waist": 86, "max_waist": 94},
+        {"size_label": "XL", "category": "top", "min_chest": 108, "max_chest": 116, "min_waist": 94, "max_waist": 102},
+        {"size_label": "XXL", "category": "top", "min_chest": 116, "max_chest": 124, "min_waist": 102, "max_waist": 110},
+        # Bottoms
+        {"size_label": "XS", "category": "bottom", "min_waist": 66, "max_waist": 74, "min_hip": 88, "max_hip": 96},
+        {"size_label": "S", "category": "bottom", "min_waist": 74, "max_waist": 80, "min_hip": 96, "max_hip": 102},
+        {"size_label": "M", "category": "bottom", "min_waist": 80, "max_waist": 86, "min_hip": 102, "max_hip": 108},
+        {"size_label": "L", "category": "bottom", "min_waist": 86, "max_waist": 94, "min_hip": 108, "max_hip": 116},
+        {"size_label": "XL", "category": "bottom", "min_waist": 94, "max_waist": 102, "min_hip": 116, "max_hip": 124},
+    ]
+
 
     def __init__(self, supabase_client: Client):
         self.supabase = supabase_client
@@ -158,6 +197,133 @@ class SizeRecommender:
         # Waist ~ (Height * 0.45) 
         return height * 0.45
 
+    def _detect_pant_type(self, product_data: Dict) -> str:
+        """
+        Detects the type of pants for appropriate size format.
+        Returns: 'jean', 'formal', 'casual', 'short'
+        - jean: Denim/Jeans -> W/L format (W32/L32)
+        - formal: Kumaş pantolon -> EU numeric (46, 48, 50)
+        - casual: Eşofman/Jogger -> S/M/L
+        - short: Şort/Etek -> S/M/L (leg length irrelevant)
+        """
+        text = str(product_data).lower()
+        
+        # Check shorts/skirts first (leg length irrelevant)
+        short_keywords = ["şort", "sort", "short", "bermuda", "kapri", "capri", 
+                          "kısa pantolon", "kisa pantolon", "etek", "skirt", "mini", "midi"]
+        if any(kw in text for kw in short_keywords):
+            return "short"
+        
+        # Check casual (sweatpants, joggers)
+        casual_keywords = ["eşofman", "esofman", "jogger", "sweatpant", "eşortman",
+                           "esortman", "pijama", "ev giyim", "rahat", "tayt", "legging"]
+        if any(kw in text for kw in casual_keywords):
+            return "casual"
+        
+        # Check jean/denim
+        jean_keywords = ["jean", "denim", "kot", "skinny jean", "slim jean", 
+                         "straight jean", "wide leg jean", "mom jean", "boyfriend jean"]
+        if any(kw in text for kw in jean_keywords):
+            return "jean"
+        
+        # Check formal/kumaş pantolon
+        formal_keywords = ["kumaş pantolon", "kumas pantolon", "klasik pantolon",
+                           "chino", "slacks", "dress pant", "formal", "takım elbise",
+                           "takim elbise", "palazzo", "wide leg", "geniş paça", "genis paca",
+                           "cropped", "ankle", "cigarette", "straight", "regular fit pantolon"]
+        if any(kw in text for kw in formal_keywords):
+            return "formal"
+        
+        # Default: if it's a generic "pantolon" or "pant", treat as formal
+        if "pantolon" in text or "pant" in text or "trouser" in text:
+            return "formal"
+        
+        # Fallback to casual for unknown bottoms
+        return "casual"
+
+    def _get_size_chart_for_gender(self, gender: str, category: str) -> List[Dict[str, Any]]:
+        """
+        Returns appropriate size chart based on user gender.
+        """
+        gender_lower = (gender or "").lower()
+        
+        if gender_lower in ["male", "erkek", "man"]:
+            chart = self.MALE_SIZE_CHART
+        elif gender_lower in ["female", "kadın", "kadin", "woman"]:
+            chart = self.FEMALE_SIZE_CHART
+        else:
+            chart = self.UNIVERSAL_SIZE_CHART
+        
+        # Filter by category
+        return [s for s in chart if s["category"] == category]
+
+    def _calculate_size_percentages(self, user_measurement: float, size_chart: List[Dict[str, Any]], 
+                                     metric_key: str) -> Dict[str, int]:
+        """
+        Calculates compatibility percentages for each size based on user measurement.
+        Returns top 3 sizes with percentages that sum to 100.
+        
+        Method: Calculate how close the user is to each size's ideal range,
+        then normalize to percentages.
+        """
+        if not size_chart or user_measurement <= 0:
+            return {}
+        
+        scores = {}
+        
+        for size_entry in size_chart:
+            label = size_entry.get("size_label", "")
+            min_v = size_entry.get(f"min_{metric_key}")
+            max_v = size_entry.get(f"max_{metric_key}")
+            
+            if min_v is None or max_v is None:
+                continue
+            
+            # Calculate ideal center of the range
+            center = (min_v + max_v) / 2
+            range_width = (max_v - min_v) / 2
+            
+            # Calculate distance from center (normalized)
+            distance = abs(user_measurement - center)
+            
+            # Score: Higher if closer to center
+            # Use exponential decay for smoother distribution
+            if distance <= range_width:
+                # User is within this size range - high score
+                score = 100 - (distance / range_width) * 30  # 70-100 range
+            else:
+                # User is outside this range - lower score with decay
+                excess = distance - range_width
+                score = max(0, 70 - excess * 5)  # Decay rapidly
+            
+            scores[label] = score
+        
+        if not scores:
+            return {}
+        
+        # Get top 3 scores
+        sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
+        
+        # Normalize to 100%
+        total = sum(s[1] for s in sorted_scores)
+        if total == 0:
+            return {}
+        
+        percentages = {}
+        for label, score in sorted_scores:
+            pct = round((score / total) * 100)
+            percentages[label] = pct
+        
+        # Adjust to ensure sum is exactly 100
+        current_sum = sum(percentages.values())
+        if current_sum != 100 and percentages:
+            diff = 100 - current_sum
+            # Add difference to highest
+            top_label = sorted_scores[0][0]
+            percentages[top_label] += diff
+        
+        return percentages
+
     def get_recommendation(self, user_id: str, product_data: Dict) -> Dict[str, Any]:
         print(f"--- Getting Recommendation for User: {user_id} ---")
         
@@ -171,6 +337,7 @@ class SizeRecommender:
         u_shoulder = measurements.get("shoulder") or 0
         u_chest = measurements.get("chest") or 0
         u_waist = measurements.get("waist") or 0
+        u_hips = measurements.get("hips") or 0  # Hip measurement for bottoms
         # New Measurements (Precision)
         u_arm_length = measurements.get("arm_length") or 0
         u_inseam = measurements.get("inseam") or 0
@@ -197,6 +364,9 @@ class SizeRecommender:
         description = (product_data.get("description", "") + " " + product_data.get("product_name", "")).lower()
         fabric_text = product_data.get("fabric_composition")
         body_shape = measurements.get("body_shape", "regular")
+        user_gender = measurements.get("gender", "other")  # User's gender for size chart selection
+        
+        print(f"DEBUG: User Gender: {user_gender}")
 
         category = self._infer_category(product_data)
         if not category:
@@ -222,12 +392,9 @@ class SizeRecommender:
             size_chart = self._get_size_chart(brand_id, category)
         
         if not size_chart:
-            # Fallback logic
-            print(f"WARNING: No specific size chart found for {brand_name}. Using Universal Standard.")
-            size_chart = [
-                s for s in self.UNIVERSAL_SIZE_CHART 
-                if s["category"] == category
-            ]
+            # Fallback logic - Use gender-specific chart
+            print(f"WARNING: No specific size chart found for {brand_name}. Using Gender-Based Standard ({user_gender}).")
+            size_chart = self._get_size_chart_for_gender(user_gender, category)
             is_fallback = True
             
         if not size_chart:
@@ -346,6 +513,7 @@ class SizeRecommender:
             "shoulder": -1,
             "chest": -1,
             "waist": -1,
+            "hip": -1,  # For bottoms
             "weight": -1
         }
         
@@ -427,6 +595,13 @@ class SizeRecommender:
              if idx_w == -1 and category == "top":
                   idx_w = find_fitting_index(target_waist, "chest")
              candidate_indices["waist"] = idx_w
+
+        # --- 4c. Hip (for Bottoms) ---
+        if category == "bottom" and u_hips > 0:
+            idx_hip = find_fitting_index(u_hips, "hip")
+            if idx_hip > -1:
+                candidate_indices["hip"] = idx_hip
+                reasons.append(f"Kalça: {int(u_hips)}cm ölçüsü kullanıldı.")
 
         # --- 4c. Weight (Floor) ---
         # Revised Heuristic: Lower the thresholds slightly or deprioritize if measurements exist.
@@ -623,70 +798,80 @@ class SizeRecommender:
         fit_message = f"{final_label} Beden Öneriyoruz."
         
         # --- Specific Pant Recommendation (User Request) ---
-        # Only use Numeric (W/L) for strict Pants/Jeans. 
-        # For Sweatpants (Eşofman), Shorts (Şort) etc. keep S/M/L.
-        is_pant = any(x in str(product_data).lower() for x in ["jean", "pantolon", "pant", "denim", "trouser", "chino", "cargo", "slacks"])
-        is_sweatpant = "eşofman" in str(product_data).lower() or "jogger" in str(product_data).lower() or "sweatpant" in str(product_data).lower()
-        
-        # NEW: Detect shorts, skirts, and short pants - leg length is IRRELEVANT for these
-        is_short = any(x in str(product_data).lower() for x in [
-            "şort", "sort", "short", "bermuda", "kapri", "capri", "kısa", "kisa",
-            "etek", "skirt", "mini", "midi"
-        ])
-        
-        # --- SHORTS/SKIRTS LOGIC: Only use waist circumference ---
-        if category == "bottom" and is_short:
-            # For shorts, skirts, and short pants - ONLY waist matters, leg length is irrelevant
-            # Calculate Numeric Waist (Inch)
-            w_inch = round(target_waist / 2.54)
+        # Using new pant type detection for appropriate size format
+        if category == "bottom":
+            pant_type = self._detect_pant_type(product_data)
+            print(f"DEBUG: Detected Pant Type: {pant_type}")
             
-            # Add to report - explicitly state leg length is not used
-            report_lines.append(f"Kısa Giysi Tespit Edildi: Bacak boyu bu ürün için önemsiz.")
-            report_lines.append(f"Bel Hesabı: {target_waist:.1f}cm -> W{w_inch}")
+            # Calculate base measurements
+            w_inch = round(target_waist / 2.54) if target_waist > 0 else 0
             
-            # Keep S/M/L format for shorts/skirts (more common than numeric)
-            # But also provide numeric waist for reference
-            fit_message = f"{final_label} Beden Öneriyoruz (Bel: ~{w_inch} inch)"
+            # --- SHORT: Şort/Etek - S/M/L format, leg length irrelevant ---
+            if pant_type == "short":
+                report_lines.append(f"Kısa Giysi Tespit Edildi: Bacak boyu bu ürün için önemsiz.")
+                report_lines.append(f"Bel Hesabı: {target_waist:.1f}cm")
+                if u_hips > 0:
+                    report_lines.append(f"Kalça Hesabı: {u_hips:.1f}cm")
+                fit_message = f"{final_label} Beden Öneriyoruz"
+                detailed_report += f"\n\nÖzel Tavsiye: Şort/Etek için sadece bel{' ve kalça' if u_hips > 0 else ''} ölçünüze göre {final_label} beden önerilmektedir."
             
-            # Update detailed report
-            detailed_report += f"\n\nÖzel Tavsiye: Şort/Etek/Kısa ürünlerde bacak boyu önemsizdir. Sadece bel ölçünüze ({target_waist:.1f}cm) göre {final_label} beden önerilmektedir."
+            # --- CASUAL: Eşofman/Jogger - S/M/L format ---
+            elif pant_type == "casual":
+                report_lines.append(f"Günlük/Rahat Giyim Tespit Edildi: S/M/L formatı kullanılıyor.")
+                report_lines.append(f"Bel Hesabı: {target_waist:.1f}cm")
+                fit_message = f"{final_label} Beden Öneriyoruz"
+                detailed_report += f"\n\nÖzel Tavsiye: Eşofman/jogger için {final_label} beden önerilmektedir."
             
-        # Override: If it looks like a pant but is explicitly sweatpant, default to S/M/L unless user wants W/L? usually S/M/L.
-        elif category == "bottom" and is_pant and not is_sweatpant and not is_short:
-             # Calculate Numeric Waist (Inch)
-             # Waist cm / 2.54
-             # E.g. 80cm / 2.54 = ~31.5 -> 31 or 32
-             # Round to nearest integer.
-             w_inch = round(target_waist / 2.54)
-             
-             # Calculate Inseam (Leg Length)
-             if u_inseam > 0:
-                 leg_len_cm = u_inseam
-                 l_inch = round(leg_len_cm / 2.54)
-                 report_lines.append(f"İç Bacak: {u_inseam}cm verisi kullanıldı -> L{l_inch}")
-             else:
-                 # Heuristic: Inseam ~ Height * 0.45 
-                 leg_len_cm = u_height * 0.45
-                 l_inch = round(leg_len_cm / 2.54)
-                 report_lines.append(f"İç Bacak (Tahmini): Boy {u_height}cm * 0.45 -> L{l_inch}")
-             
-             # Format strict user request: "pantolon bedeniniz bacak boyunuza gore 30 bedendır"
-             # We will try to match this phrasing but include Waist too as that's the primary "Size" (Beden).
-             # "Bel ölçünüze göre 31, Bacak boyunuza göre 32 Boy öneriyoruz."
-             # OR simple: "Pantolon Bedeniniz: 31 (Boy: 32)"
-             
-             pant_msg = f"Pantolon tercihinde: Bel ölçünüze göre {w_inch}, Bacak boyunuza göre {l_inch} Boy önerilir."
-             report_lines.append(f"Pantolon Hesabı: Bel {u_waist}cm -> W{w_inch}, Boy {u_height}cm -> L{l_inch}")
-             
-             # OVERRIDE: Return Numeric Size "30", "31" etc. instead of "S", "M"
-             final_label = str(w_inch)
+            # --- JEAN: Denim/Jeans - W/L format (W32/L32) ---
+            elif pant_type == "jean":
+                # Calculate Inseam (Leg Length)
+                if u_inseam > 0:
+                    leg_len_cm = u_inseam
+                    l_inch = round(leg_len_cm / 2.54)
+                    report_lines.append(f"İç Bacak: {u_inseam}cm verisi kullanıldı -> L{l_inch}")
+                else:
+                    # Heuristic: Inseam ~ Height * 0.45 
+                    leg_len_cm = u_height * 0.45
+                    l_inch = round(leg_len_cm / 2.54)
+                    report_lines.append(f"İç Bacak (Tahmini): Boy {u_height}cm * 0.45 -> L{l_inch}")
+                
+                if u_hips > 0:
+                    report_lines.append(f"Kalça: {u_hips:.1f}cm kontrol edildi.")
+                
+                report_lines.append(f"Jean Hesabı: Bel {target_waist:.1f}cm -> W{w_inch}, Bacak -> L{l_inch}")
+                
+                # Return W/L format
+                final_label = str(w_inch)
+                fit_message = f"W{w_inch}/L{l_inch} Beden Öneriyoruz"
+                detailed_report += f"\n\nÖzel Tavsiye: Jean bedeniniz W{w_inch}/L{l_inch} olarak hesaplanmıştır. (Bel: {w_inch} inch, Bacak: {l_inch} inch)"
+            
+            # --- FORMAL: Kumaş Pantolon - EU numeric (46, 48, 50) ---
+            elif pant_type == "formal":
+                # EU Size calculation: Waist cm -> EU size
+                # Approximate: EU Size = (Waist_cm / 2) + 6
+                # 80cm waist -> 46, 84cm -> 48, 88cm -> 50, etc.
+                eu_size = round((target_waist / 2) + 6)
+                # Round to nearest even number (EU sizes are typically even)
+                eu_size = round(eu_size / 2) * 2
+                
+                # Calculate leg length for reference
+                if u_inseam > 0:
+                    leg_len_cm = u_inseam
+                    report_lines.append(f"İç Bacak: {u_inseam}cm")
+                else:
+                    leg_len_cm = u_height * 0.45
+                    report_lines.append(f"İç Bacak (Tahmini): {leg_len_cm:.1f}cm")
+                
+                if u_hips > 0:
+                    report_lines.append(f"Kalça: {u_hips:.1f}cm kontrol edildi.")
+                
+                report_lines.append(f"Kumaş Pantolon Hesabı: Bel {target_waist:.1f}cm -> EU {eu_size}")
+                
+                # Return EU size format
+                final_label = str(eu_size)
+                fit_message = f"EU {eu_size} Beden Öneriyoruz"
+                detailed_report += f"\n\nÖzel Tavsiye: Kumaş pantolon için EU {eu_size} beden (bel ölçünüz: {target_waist:.1f}cm) önerilmektedir."
 
-             # Update fit message
-             fit_message = f"{final_label} Beden Öneriyoruz ({l_inch} Boy)"
-             
-             # Override detail report message to be very specific as requested
-             # "ornegın pantolon bedenınızız bacak boyunuza gore 30 bedendır"
-             detailed_report += f"\n\nÖzel Tavsiye: Pantolon bedeniniz bacak boyunuza (ve belinize) göre {w_inch}-{l_inch} (W{w_inch}/L{l_inch}) olarak hesaplanmıştır."
         
         if is_fallback:
             report_lines.append("Not: Markaya özel tablo bulunamadığı için genel beden tablosu (Universal) kullanıldı.")
@@ -700,9 +885,30 @@ class SizeRecommender:
         print(f"DEBUG: Final Decision: {final_label} based on Index {final_idx}")
         print(f"DEBUG: Report: {detailed_report}")
 
+        # Calculate size compatibility percentages
+        primary_metric = target_chest if category == "top" else target_waist
+        metric_key = "chest" if category == "top" else "waist"
+        size_percentages = self._calculate_size_percentages(primary_metric, size_chart, metric_key)
+        
+        # If no percentages calculated, create default based on final label
+        if not size_percentages:
+            size_percentages = {final_label: 90, "?": 10}
+        
+        # Update fit message to include percentages
+        top_size = list(size_percentages.keys())[0] if size_percentages else final_label
+        top_pct = size_percentages.get(top_size, 100)
+        fit_message = f"{top_size} beden için %{top_pct} uyumlusunuz"
+        
+        # Add secondary sizes to message if available
+        if len(size_percentages) > 1:
+            secondary_info = ", ".join([f"{s}: %{p}" for s, p in list(size_percentages.items())[1:]])
+            fit_message += f" ({secondary_info})"
+
+        print(f"DEBUG: Size Percentages: {size_percentages}")
+
         return {
             "recommended_size": final_label,
-            "confidence_score": max(0.0, min(confidence, 1.0)),
+            "size_percentages": size_percentages,  # NEW: Replaces confidence_score
             "fit_message": fit_message,
             "detailed_report": detailed_report,
             "warning": adjustment_msg
