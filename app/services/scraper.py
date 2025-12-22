@@ -471,6 +471,38 @@ class ProductScraper:
                      if src:
                         data["image_url"] = src
                         break
+        
+        # Extract Available Size Options (Critical for proper size format detection)
+        # Trendyol uses .variants .variant-list or .sp-itm for sizes
+        size_options = []
+        for sel in [".variants .variant-list .sp-itm", ".size-variant-wrapper button", ".variant-property button", ".slc-txt", ".sp-itm", "[data-testid='size-selector'] button", ".size-list button"]:
+            tags = soup.select(sel)
+            if tags:
+                for tag in tags:
+                    size_text = self._clean_text(tag.get_text())
+                    if size_text and len(size_text) <= 10:  # Reasonable size label length
+                        size_options.append(size_text.upper().strip())
+                if size_options:
+                    break
+        
+        # Fallback: Search for size-related JSON in scripts
+        if not size_options:
+            import re
+            script_tags = soup.find_all("script")
+            for script in script_tags:
+                if script.string and "allVariants" in script.string:
+                    # Try to extract sizes from variant JSON
+                    size_pattern = re.compile(r'"value"\s*:\s*"([XSML0-9]+)"', re.IGNORECASE)
+                    matches = size_pattern.findall(script.string)
+                    if matches:
+                        size_options = list(set([m.upper() for m in matches if len(m) <= 5]))
+                        break
+        
+        if size_options:
+            # Remove duplicates and sort
+            size_options = list(dict.fromkeys(size_options))
+            data["available_sizes"] = size_options
+            print(f"DEBUG: Extracted Trendyol sizes: {size_options}")
 
     def _scrape_pullandbear_specific(self, soup, data):
         # Pull & Bear Specific Selectors

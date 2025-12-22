@@ -60,6 +60,50 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
     }
   }
 
+  // Mezuradan karışa geçerken: CM değerlerini karış sayısına dönüştür
+  void _convertAllToHandSpan() {
+    if (_estimatedHandSpan <= 0) return;
+    
+    // Her bir alanı dönüştür (cm -> karış)
+    _convertControllerToHandSpan(_shoulderController);
+    _convertControllerToHandSpan(_chestController);
+    _convertControllerToHandSpan(_waistController);
+    _convertControllerToHandSpan(_legLengthController);
+    _convertControllerToHandSpan(_hipsController);
+    _convertControllerToHandSpan(_armLengthController);
+  }
+  
+  void _convertControllerToHandSpan(TextEditingController controller) {
+    if (controller.text.isEmpty) return;
+    final cmValue = double.tryParse(controller.text);
+    if (cmValue != null && cmValue > 0) {
+      final handSpanValue = cmValue / _estimatedHandSpan;
+      controller.text = handSpanValue.toStringAsFixed(1);
+    }
+  }
+
+  // Karıştan mezuraya geçerken: Karış sayılarını CM'ye dönüştür
+  void _convertAllToTape() {
+    if (_estimatedHandSpan <= 0) return;
+    
+    // Her bir alanı dönüştür (karış -> cm)
+    _convertControllerToTape(_shoulderController);
+    _convertControllerToTape(_chestController);
+    _convertControllerToTape(_waistController);
+    _convertControllerToTape(_legLengthController);
+    _convertControllerToTape(_hipsController);
+    _convertControllerToTape(_armLengthController);
+  }
+  
+  void _convertControllerToTape(TextEditingController controller) {
+    if (controller.text.isEmpty) return;
+    final handSpanValue = double.tryParse(controller.text);
+    if (handSpanValue != null && handSpanValue > 0) {
+      final cmValue = handSpanValue * _estimatedHandSpan;
+      controller.text = cmValue.toStringAsFixed(1);
+    }
+  }
+
   void _onContinuePressed() {
     final height = _heightController.text.trim();
     final weight = _weightController.text.trim();
@@ -440,15 +484,17 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                                      ),
                                    ),
                                    value: _isHandSpanMode,
-                                   onChanged: _estimatedHandSpan > 0 
-                                     ? (val) {
-                                         if (val) {
-                                           _showHandSpanTutorial();
-                                         } else {
-                                           setState(() => _isHandSpanMode = false);
-                                         }
-                                     }
-                                     : null,
+                                    onChanged: _estimatedHandSpan > 0 
+                                      ? (val) {
+                                          if (val) {
+                                            _showHandSpanTutorial();
+                                          } else {
+                                            // Karıştan mezuraya geçiş - değerleri cm'ye dönüştür
+                                            _convertAllToTape();
+                                            setState(() => _isHandSpanMode = false);
+                                          }
+                                      }
+                                      : null,
                                    activeColor: Theme.of(context).primaryColor,
                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                  ),
@@ -1009,6 +1055,8 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.pop(context);
+                    // Mezuradan karışa geçiş - değerleri karışa dönüştür
+                    _convertAllToHandSpan();
                     setState(() => _isHandSpanMode = true);
                   },
                   style: ElevatedButton.styleFrom(
