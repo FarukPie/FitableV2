@@ -468,6 +468,83 @@ class SizeRecommender:
         
         return percentages
 
+    def _calculate_numeric_pant_percentages(self, waist_cm: float, pant_type: str) -> Dict[str, int]:
+        """
+        Calculates compatibility percentages for numeric pant sizes.
+        - jean: W28, W29, W30, W31, W32, W33, W34, etc. (inch based)
+        - formal: EU 44, 46, 48, 50, 52 (even numbers)
+        
+        Returns top 3 sizes with percentages.
+        """
+        import math
+        
+        if waist_cm <= 0:
+            return {}
+        
+        scores = {}
+        
+        if pant_type == "jean":
+            # Convert waist cm to inches for jeans
+            waist_inch = waist_cm / 2.54
+            
+            # Generate nearby sizes (3 below, 3 above the calculated size)
+            center_size = round(waist_inch)
+            sizes_to_check = list(range(max(26, center_size - 3), min(42, center_size + 4)))
+            
+            for size in sizes_to_check:
+                # Each jean size covers ~1 inch range
+                size_center = size
+                
+                # Gaussian-like scoring
+                distance = abs(waist_inch - size_center)
+                score = max(0, 100 - (distance * 30))  # ~30 points per inch off
+                
+                if score > 0:
+                    scores[str(size)] = score
+        
+        elif pant_type == "formal":
+            # EU size calculation: approximately (waist_cm / 2) + 6
+            ideal_eu = (waist_cm / 2) + 6
+            
+            # EU sizes are even: 44, 46, 48, 50, 52, etc.
+            # Generate nearby even sizes
+            center_eu = round(ideal_eu / 2) * 2  # Round to nearest even
+            sizes_to_check = list(range(max(42, center_eu - 6), min(60, center_eu + 8), 2))
+            
+            for size in sizes_to_check:
+                # Each EU size covers ~2cm waist range
+                size_ideal_waist = (size - 6) * 2
+                distance = abs(waist_cm - size_ideal_waist)
+                score = max(0, 100 - (distance * 15))  # ~15 points per cm off
+                
+                if score > 0:
+                    scores[str(size)] = score
+        
+        if not scores:
+            return {}
+        
+        # Get top 3 scores
+        sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
+        
+        # Normalize to 100%
+        total = sum(s[1] for s in sorted_scores)
+        if total == 0:
+            return {}
+        
+        percentages = {}
+        for label, score in sorted_scores:
+            pct = round((score / total) * 100)
+            percentages[label] = max(1, pct)
+        
+        # Adjust to ensure sum is exactly 100
+        current_sum = sum(percentages.values())
+        if current_sum != 100 and percentages:
+            diff = 100 - current_sum
+            top_label = sorted_scores[0][0]
+            percentages[top_label] = max(1, percentages[top_label] + diff)
+        
+        return percentages
+
     def get_recommendation(self, user_id: str, product_data: Dict) -> Dict[str, Any]:
         print(f"--- Getting Recommendation for User: {user_id} ---")
         
@@ -1074,7 +1151,12 @@ class SizeRecommender:
         # Calculate size compatibility percentages
         primary_metric = target_chest if category == "top" else target_waist
         metric_key = "chest" if category == "top" else "waist"
-        size_percentages = self._calculate_size_percentages(primary_metric, size_chart, metric_key)
+        
+        # For pants with numeric sizes (jeans, formal), calculate numeric percentages
+        if category == "bottom" and pant_type in ["jean", "formal"]:
+            size_percentages = self._calculate_numeric_pant_percentages(target_waist, pant_type)
+        else:
+            size_percentages = self._calculate_size_percentages(primary_metric, size_chart, metric_key)
         
         # If no percentages calculated, create default based on final label
         if not size_percentages:
@@ -1099,8 +1181,14 @@ class SizeRecommender:
                 fit_suggestion = f"\n\n💡 Giyim Tercihi: Tam oturan istiyorsanız {top_size}, daha rahat/bol istiyorsanız {next_size} bedenini tercih edebilirsiniz."
                 detailed_report += fit_suggestion
         except (ValueError, IndexError):
-            # If size not in standard order (like numeric sizes), skip this suggestion
-            pass
+            # For numeric sizes (jeans, formal pants), add numeric suggestion
+            try:
+                numeric_size = int(top_size)
+                next_numeric = numeric_size + 1
+                fit_suggestion = f"\n\n💡 Giyim Tercihi: Tam oturan istiyorsanız {numeric_size}, daha rahat/bol istiyorsanız {next_numeric} bedenini tercih edebilirsiniz."
+                detailed_report += fit_suggestion
+            except ValueError:
+                pass
 
         print(f"DEBUG: Size Percentages: {size_percentages}")
 

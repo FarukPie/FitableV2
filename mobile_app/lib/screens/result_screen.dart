@@ -147,6 +147,61 @@ class ResultScreen extends StatelessWidget {
               ),
             ),
 
+            const SizedBox(height: 12),
+
+            // Fit Preference Suggestion Card (Tam/Bol)
+            if (result.sizePercentages.length >= 2)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Theme.of(context).primaryColor.withOpacity(0.1),
+                      Theme.of(context).primaryColor.withOpacity(0.05),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text("💡", style: TextStyle(fontSize: 20)),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Giyim Tercihiniz",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFitOption(
+                      context,
+                      icon: Icons.straighten,
+                      label: "Tam Oturan",
+                      size: result.recommendedSize,
+                      description: "Vücuda oturan, fit kesim",
+                      isRecommended: true,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildFitOption(
+                      context,
+                      icon: Icons.open_in_full,
+                      label: "Rahat / Bol",
+                      size: _getNextSize(result.recommendedSize),
+                      description: "Daha rahat, serbest kesim",
+                      isRecommended: false,
+                    ),
+                  ],
+                ),
+              ),
+
             const SizedBox(height: 16),
 
             // Warning
@@ -266,5 +321,83 @@ class ResultScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildFitOption(BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String size,
+    required String description,
+    required bool isRecommended,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isRecommended 
+            ? Theme.of(context).primaryColor.withOpacity(0.15) 
+            : Colors.grey.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: isRecommended 
+            ? Border.all(color: Theme.of(context).primaryColor, width: 2) 
+            : null,
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: isRecommended ? Theme.of(context).primaryColor : Colors.grey),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isRecommended ? Theme.of(context).primaryColor : Colors.grey[700],
+                  ),
+                ),
+                Text(
+                  description,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: isRecommended ? Theme.of(context).primaryColor : Colors.grey[400],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              size,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getNextSize(String currentSize) {
+    final sizeOrder = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL"];
+    final upperSize = currentSize.toUpperCase();
+    final currentIndex = sizeOrder.indexOf(upperSize);
+    
+    if (currentIndex >= 0 && currentIndex < sizeOrder.length - 1) {
+      return sizeOrder[currentIndex + 1];
+    }
+    
+    // For numeric sizes (like jeans 30, 31, 32)
+    final numericSize = int.tryParse(currentSize);
+    if (numericSize != null) {
+      return (numericSize + 1).toString();
+    }
+    
+    return currentSize;
   }
 }
