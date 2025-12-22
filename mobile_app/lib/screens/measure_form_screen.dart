@@ -318,7 +318,7 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                             children: [
                               Expanded(child: _buildInput(AppLocalizations.of(context)!.heightLabel, _heightController, icon: Icons.height)),
                               const SizedBox(width: 16),
-                              Expanded(child: _buildInput(AppLocalizations.of(context)!.weightLabel, _weightController, icon: Icons.monitor_weight_outlined)),
+                              Expanded(child: _buildInput(AppLocalizations.of(context)!.weightLabel, _weightController, icon: Icons.monitor_weight_outlined, suffixOverride: "kg")),
                             ],
                           ),
                         ],
@@ -596,15 +596,19 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                           ),
                           child: const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.delete_forever_rounded, color: Colors.white),
                               SizedBox(width: 8),
-                              Text(
-                                "Hesabı Sil",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                              Flexible(
+                                child: Text(
+                                  "Hesabımı Sil",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.visible,
                                 ),
                               ),
                             ],

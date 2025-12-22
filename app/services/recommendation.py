@@ -628,8 +628,31 @@ class SizeRecommender:
         is_pant = any(x in str(product_data).lower() for x in ["jean", "pantolon", "pant", "denim", "trouser", "chino", "cargo", "slacks"])
         is_sweatpant = "eşofman" in str(product_data).lower() or "jogger" in str(product_data).lower() or "sweatpant" in str(product_data).lower()
         
+        # NEW: Detect shorts, skirts, and short pants - leg length is IRRELEVANT for these
+        is_short = any(x in str(product_data).lower() for x in [
+            "şort", "sort", "short", "bermuda", "kapri", "capri", "kısa", "kisa",
+            "etek", "skirt", "mini", "midi"
+        ])
+        
+        # --- SHORTS/SKIRTS LOGIC: Only use waist circumference ---
+        if category == "bottom" and is_short:
+            # For shorts, skirts, and short pants - ONLY waist matters, leg length is irrelevant
+            # Calculate Numeric Waist (Inch)
+            w_inch = round(target_waist / 2.54)
+            
+            # Add to report - explicitly state leg length is not used
+            report_lines.append(f"Kısa Giysi Tespit Edildi: Bacak boyu bu ürün için önemsiz.")
+            report_lines.append(f"Bel Hesabı: {target_waist:.1f}cm -> W{w_inch}")
+            
+            # Keep S/M/L format for shorts/skirts (more common than numeric)
+            # But also provide numeric waist for reference
+            fit_message = f"{final_label} Beden Öneriyoruz (Bel: ~{w_inch} inch)"
+            
+            # Update detailed report
+            detailed_report += f"\n\nÖzel Tavsiye: Şort/Etek/Kısa ürünlerde bacak boyu önemsizdir. Sadece bel ölçünüze ({target_waist:.1f}cm) göre {final_label} beden önerilmektedir."
+            
         # Override: If it looks like a pant but is explicitly sweatpant, default to S/M/L unless user wants W/L? usually S/M/L.
-        if category == "bottom" and is_pant and not is_sweatpant:
+        elif category == "bottom" and is_pant and not is_sweatpant and not is_short:
              # Calculate Numeric Waist (Inch)
              # Waist cm / 2.54
              # E.g. 80cm / 2.54 = ~31.5 -> 31 or 32

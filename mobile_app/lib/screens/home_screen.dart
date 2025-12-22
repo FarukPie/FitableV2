@@ -3,16 +3,20 @@ import 'package:provider/provider.dart';
 import 'package:lottie/lottie.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/app_provider.dart';
+import '../models/history_item.dart';
 import 'closet_screen.dart';
 import 'measure_form_screen.dart';
 import 'result_screen.dart';
 import 'package:size_recommendation_app/l10n/app_localizations.dart';
 import '../utils/error_mapper.dart';
+import '../utils/icon_mapper.dart';
+import '../utils/name_simplifier.dart';
 import 'dart:async';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/intro_dialog.dart';
 import 'package:flutter/foundation.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -209,94 +213,351 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildInputState(AppProvider provider) {
-    return Column(
+    return SingleChildScrollView(
       key: const ValueKey("Input"),
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          AppLocalizations.of(context)!.homeTitle,
-          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: -0.5),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 16),
-        Text(
-          AppLocalizations.of(context)!.homeSubtitle,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16, color: Colors.grey, height: 1.5),
-        ),
-        const SizedBox(height: 48),
-        Container(
-          decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: Theme.of(context).primaryColor.withOpacity(0.15),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              )
-            ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Title Section
+          Text(
+            AppLocalizations.of(context)!.homeTitle,
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+            textAlign: TextAlign.center,
           ),
-          child: TextField(
-            controller: _urlController,
-            style: const TextStyle(fontSize: 16),
-            decoration: InputDecoration(
-              hintText: AppLocalizations.of(context)!.urlHint,
-              prefixIcon: Icon(Icons.link, color: Theme.of(context).primaryColor),
-              filled: true,
-              fillColor: Theme.of(context).inputDecorationTheme.fillColor,
-              contentPadding: const EdgeInsets.all(20),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-            ),
+          const SizedBox(height: 8),
+          Text(
+            AppLocalizations.of(context)!.homeSubtitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.4),
           ),
-        ),
-        const SizedBox(height: 32),
-        SizedBox(
-          width: double.infinity,
-          height: 60,
-          child: ElevatedButton(
-            onPressed: () {
-              if (_urlController.text.isNotEmpty) {
-                 // Close keyboard
-                 FocusScope.of(context).unfocus();
-                 provider.analyzeProduct(_urlController.text.trim());
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              elevation: 8,
-              shadowColor: Theme.of(context).primaryColor.withOpacity(0.4),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.auto_awesome, size: 24),
-                SizedBox(width: 12),
-                const SizedBox(width: 12),
-                Text(AppLocalizations.of(context)!.analyzeButton, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 24),
+          
+          // URL Input Section - Now at top
+          Container(
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).primaryColor.withOpacity(0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                )
               ],
             ),
+            child: TextField(
+              controller: _urlController,
+              style: const TextStyle(fontSize: 16),
+              decoration: InputDecoration(
+                hintText: AppLocalizations.of(context)!.urlHint,
+                prefixIcon: Icon(Icons.link, color: Theme.of(context).primaryColor),
+                filled: true,
+                fillColor: Theme.of(context).inputDecorationTheme.fillColor,
+                contentPadding: const EdgeInsets.all(20),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+              ),
+            ),
           ),
-        ),
-        if (provider.error != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 24),
-            child: Container(
-              padding: const EdgeInsets.all(8.0),
-              color: Colors.redAccent.withOpacity(0.1),
+          const SizedBox(height: 16),
+          
+          // Analyze Button
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: () {
+                if (_urlController.text.isNotEmpty) {
+                   FocusScope.of(context).unfocus();
+                   provider.analyzeProduct(_urlController.text.trim());
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).primaryColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 8,
+                shadowColor: Theme.of(context).primaryColor.withOpacity(0.4),
+              ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error, color: Colors.redAccent),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(ErrorMapper.getErrorMessage(provider.error!, context), style: const TextStyle(color: Colors.redAccent))),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.redAccent),
-                    onPressed: provider.clearResult,
-                  )
+                  Icon(Icons.auto_awesome, size: 22),
+                  const SizedBox(width: 10),
+                  Text(AppLocalizations.of(context)!.analyzeButton, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
           ),
-      ],
+          
+          // Error Message
+          if (provider.error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Container(
+                padding: const EdgeInsets.all(8.0),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error, color: Colors.redAccent),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(ErrorMapper.getErrorMessage(provider.error!, context), style: const TextStyle(color: Colors.redAccent))),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.redAccent),
+                      onPressed: provider.clearResult,
+                    )
+                  ],
+                ),
+              ),
+            ),
+          
+          const SizedBox(height: 32),
+          
+          // Closet Section
+          _buildClosetSection(provider),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClosetSection(AppProvider provider) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color ?? Colors.grey[900],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Theme.of(context).primaryColor.withOpacity(0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.checkroom_rounded, color: Theme.of(context).primaryColor),
+                    const SizedBox(width: 10),
+                    Text(
+                      AppLocalizations.of(context)!.myClosetTitle,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ClosetScreen()),
+                  ),
+                  child: Text(
+                    "Tümünü Gör",
+                    style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Closet Items Preview
+          FutureBuilder<List<HistoryItem>>(
+            future: provider.fetchHistory(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              } 
+              
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Column(
+                    children: [
+                      Icon(Icons.checkroom_outlined, size: 48, color: Colors.grey[600]),
+                      const SizedBox(height: 12),
+                      Text(
+                        AppLocalizations.of(context)!.closetEmpty,
+                        style: TextStyle(color: Colors.grey[500]),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              // Show last 3 items
+              final items = snapshot.data!.take(3).toList();
+              
+              return Column(
+                children: [
+                  ...items.map((item) => _buildClosetItemPreview(item)),
+                  const SizedBox(height: 8),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClosetItemPreview(HistoryItem item) {
+    return InkWell(
+      onTap: () => _showRecommendationPreview(item),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            // Icon
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                IconMapper.getIconForProduct(item.productName),
+                color: Theme.of(context).primaryColor,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 12),
+            
+            // Details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    NameSimplifier.simplify(item.productName),
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item.brand,
+                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Size Badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                item.recommendedSize,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showRecommendationPreview(HistoryItem item) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: const Color(0xFF1E1E1E),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon
+              Container(
+                height: 80,
+                width: 80,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  IconMapper.getIconForProduct(item.productName),
+                  size: 40,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Brand & Name
+              Text(
+                item.brand.toUpperCase(),
+                style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 11),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                NameSimplifier.simplify(item.productName),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              
+              // Size
+              Text(AppLocalizations.of(context)!.recommendedSizeLabel, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              Text(
+                item.recommendedSize,
+                style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
+              ),
+              
+              const SizedBox(height: 20),
+              
+              // Actions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("Kapat", style: TextStyle(color: Colors.grey)),
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final url = Uri.parse(item.productUrl);
+                      if (await canLaunchUrl(url)) {
+                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).primaryColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: Text(AppLocalizations.of(context)?.goToProductButton ?? "Ürüne Git"),
+                  ),
+                ],
+              )
+            ],
+          ),
+        ),
+      ),
     );
   }
 
