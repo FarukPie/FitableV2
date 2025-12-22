@@ -1196,9 +1196,16 @@ class SizeRecommender:
         # Ensure the 'recommended_size' (final_label) is always the winner in percentages.
         # This prevents the UI showing "Recommended: M" but "XL: 98% Match".
         
-        top_pct_label = list(size_percentages.keys())[0] if size_percentages else None
+        if size_percentages:
+            top_pct_label = list(size_percentages.keys())[0]
+        else:
+            top_pct_label = None
+            
+        print(f"DEBUG: Consistency Check -> Recommended: '{final_label}', TopMatch: '{top_pct_label}'")
+        print(f"DEBUG: Percentages Before: {size_percentages}")
         
-        if top_pct_label != final_label:
+        # Compare stripped strings to be safe
+        if top_pct_label and str(top_pct_label).strip().lower() != str(final_label).strip().lower():
             print(f"DEBUG: Consistency Check Triggered. Re-aligning percentages to {final_label}...")
             
             # Create a synthetic distribution centered on final_label
