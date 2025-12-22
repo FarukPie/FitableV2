@@ -182,34 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildLoadingState() {
-     return Center(
-       key: const ValueKey("Loading"),
-       child: Column(
-         mainAxisAlignment: MainAxisAlignment.center,
-         children: [
-           Lottie.network(
-             'https://assets10.lottiefiles.com/packages/lf20_7fwvvesa.json', 
-             width: 250, 
-             height: 250,
-             errorBuilder: (context, error, stack) => const CircularProgressIndicator(),
-           ),
-           const SizedBox(height: 32),
-            Text(
-              AppLocalizations.of(context)!.analyzingTitle,
-              style: GoogleFonts.outfit(
-               fontSize: 20, 
-               fontWeight: FontWeight.w600,
-               color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.7)
-             ),
-           ),
-           const SizedBox(height: 8),
-            Text(
-              AppLocalizations.of(context)!.analyzingSubtitle,
-              style: const TextStyle(color: Colors.grey),
-           ),
-         ],
-       ),
-     );
+     return _FunLoadingWidget();
   }
 
   Widget _buildInputState(AppProvider provider) {
@@ -585,5 +558,203 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       );
+  }
+}
+
+// Fun Loading Widget with rotating messages and animations
+class _FunLoadingWidget extends StatefulWidget {
+  @override
+  State<_FunLoadingWidget> createState() => _FunLoadingWidgetState();
+}
+
+class _FunLoadingWidgetState extends State<_FunLoadingWidget> with TickerProviderStateMixin {
+  late AnimationController _bounceController;
+  late AnimationController _rotateController;
+  late Animation<double> _bounceAnimation;
+  int _messageIndex = 0;
+  Timer? _messageTimer;
+
+  final List<Map<String, String>> _funMessages = [
+    {"emoji": "👕", "text": "Dolabınızı karıştırıyoruz..."},
+    {"emoji": "📏", "text": "Ölçülerinizi hesaplıyoruz..."},
+    {"emoji": "✨", "text": "Mükemmel bedeni arıyoruz..."},
+    {"emoji": "🎯", "text": "Tam size göre olmalı..."},
+    {"emoji": "🛍️", "text": "Alışveriş keyfi yaklaşıyor..."},
+    {"emoji": "💪", "text": "Neredeyse bitti, biraz sabır..."},
+    {"emoji": "🔮", "text": "Beden tahmini yapılıyor..."},
+    {"emoji": "🎨", "text": "Stil analizi devam ediyor..."},
+    {"emoji": "⚡", "text": "Hızlıca sonuçlanıyor..."},
+    {"emoji": "🌟", "text": "Harika görüneceksiniz!"},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _bounceController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+    
+    _rotateController = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    )..repeat();
+    
+    _bounceAnimation = Tween<double>(begin: 0, end: 15).animate(
+      CurvedAnimation(parent: _bounceController, curve: Curves.easeInOut),
+    );
+    
+    // Rotate messages every 2 seconds
+    _messageTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      if (mounted) {
+        setState(() {
+          _messageIndex = (_messageIndex + 1) % _funMessages.length;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _bounceController.dispose();
+    _rotateController.dispose();
+    _messageTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentMessage = _funMessages[_messageIndex];
+    
+    return Center(
+      key: const ValueKey("FunLoading"),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Animated Emoji with bounce
+          AnimatedBuilder(
+            animation: _bounceAnimation,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(0, -_bounceAnimation.value),
+                child: child,
+              );
+            },
+            child: RotationTransition(
+              turns: Tween(begin: 0.0, end: 1.0).animate(_rotateController),
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Theme.of(context).primaryColor.withOpacity(0.3),
+                      Theme.of(context).primaryColor.withOpacity(0.1),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(context).primaryColor.withOpacity(0.3),
+                      blurRadius: 30,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    currentMessage["emoji"]!,
+                    style: const TextStyle(fontSize: 50),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 40),
+          
+          // Animated message with fade
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 500),
+            transitionBuilder: (child, animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.3),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
+              );
+            },
+            child: Text(
+              currentMessage["text"]!,
+              key: ValueKey(_messageIndex),
+              style: GoogleFonts.outfit(
+                fontSize: 22,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Progress dots animation
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(3, (index) {
+              return AnimatedBuilder(
+                animation: _bounceController,
+                builder: (context, child) {
+                  final delay = index * 0.2;
+                  final value = (_bounceController.value + delay) % 1.0;
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).primaryColor.withOpacity(0.3 + value * 0.7),
+                      shape: BoxShape.circle,
+                    ),
+                  );
+                },
+              );
+            }),
+          ),
+          
+          const SizedBox(height: 40),
+          
+          // Fun tip
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("💡", style: TextStyle(fontSize: 16)),
+                const SizedBox(width: 8),
+                Text(
+                  "İpucu: Ölçülerinizi güncel tutun!",
+                  style: TextStyle(
+                    color: Theme.of(context).primaryColor,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

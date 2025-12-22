@@ -57,7 +57,61 @@ class SizeRecommender:
         {"size_label": "XL", "category": "bottom", "min_waist": 94, "max_waist": 102, "min_hip": 116, "max_hip": 124},
     ]
 
-
+    # === PROFESSIONAL OPTIMIZATION CONSTANTS ===
+    
+    # Metric Weights - Top garments (t-shirt, shirt, jacket, etc.)
+    TOP_WEIGHTS = {
+        "chest": 0.45,      # Primary metric - 45%
+        "shoulder": 0.25,   # Important for fit - 25%
+        "waist": 0.15,      # Secondary - 15%
+        "weight": 0.15      # Fallback validation - 15%
+    }
+    
+    # Metric Weights - Bottom garments (pants, skirt, etc.)
+    BOTTOM_WEIGHTS = {
+        "waist": 0.40,      # Primary metric - 40%
+        "hip": 0.35,        # Very important - 35%
+        "inseam": 0.15,     # Length - 15%
+        "weight": 0.10      # Fallback - 10%
+    }
+    
+    # Brand Fit Factors - How brands typically fit (1.0 = standard)
+    # < 1.0 = runs small, > 1.0 = runs large
+    BRAND_FIT_FACTORS = {
+        "zara": {"top": 0.95, "bottom": 0.92},        # Runs small
+        "hm": {"top": 1.0, "bottom": 1.0},            # Standard
+        "h&m": {"top": 1.0, "bottom": 1.0},           # Standard
+        "pull&bear": {"top": 1.05, "bottom": 1.02},   # Runs slightly large
+        "pullandbear": {"top": 1.05, "bottom": 1.02},
+        "bershka": {"top": 0.95, "bottom": 0.95},     # Runs small
+        "mango": {"top": 0.98, "bottom": 0.95},       # Slightly small
+        "massimo dutti": {"top": 1.0, "bottom": 1.0}, # Standard
+        "stradivarius": {"top": 0.95, "bottom": 0.93},# Runs small
+        "lcw": {"top": 1.02, "bottom": 1.0},          # Slightly large tops
+        "lc waikiki": {"top": 1.02, "bottom": 1.0},
+        "defacto": {"top": 1.0, "bottom": 1.0},       # Standard
+        "koton": {"top": 0.98, "bottom": 0.98},       # Slightly small
+        "trendyol": {"top": 1.0, "bottom": 1.0},      # Varies, use standard
+        "nike": {"top": 1.0, "bottom": 0.98},         # Standard/slightly small bottoms
+        "adidas": {"top": 1.0, "bottom": 1.0},        # Standard
+        "puma": {"top": 1.02, "bottom": 1.0},         # Slightly large tops
+    }
+    
+    # Body Shape Adjustments (in size index offset)
+    BODY_SHAPE_ADJUSTMENTS = {
+        "inverted_triangle": {"top": 0.5, "bottom": 0},      # Broad shoulders
+        "ters_ucgen": {"top": 0.5, "bottom": 0},
+        "triangle": {"top": 0, "bottom": 0.5},               # Pear shape - wider hips
+        "pear": {"top": 0, "bottom": 0.5},
+        "armut": {"top": 0, "bottom": 0.5},
+        "rectangle": {"top": 0, "bottom": 0},                # Balanced
+        "dikdortgen": {"top": 0, "bottom": 0},
+        "apple": {"top": 0.5, "bottom": 0.5},                # Wider midsection
+        "elma": {"top": 0.5, "bottom": 0.5},
+        "hourglass": {"top": 0, "bottom": 0},                # Balanced curves
+        "kum_saati": {"top": 0, "bottom": 0},
+        "regular": {"top": 0, "bottom": 0},
+    }
     def __init__(self, supabase_client: Client):
         self.supabase = supabase_client
 
@@ -182,20 +236,124 @@ class SizeRecommender:
         return mapping.get(label, -1)
 
     def _estimate_waist(self, height: float, weight: float) -> float:
-        """Estimates waist circumference (cm) using WHtR heuristic."""
+        """Estimates waist circumference (cm) using BMI-based heuristic."""
         # WHtR (Waist-to-Height Ratio) is approx 0.42-0.5 for healthy adults.
-        # This is a rough fallback.
-        # Better heuristic: BMI based?
-        # Waist approx 0.45 * Height for average build?
-        # Let's use a weight-based regression approx for men/women mix:
-        # Waist ~ 30 + 0.7 * Weight (very rough)?
-        # Let's use:
         if height == 0: return 0
-        return (weight / height) * 100 * 1.5 # e.g. 70/175 = 0.4 * 1.5? No.
-        # Fallback: Waist approx body_fat factor.
-        # Let's use a safe average:
-        # Waist ~ (Height * 0.45) 
-        return height * 0.45
+        # Improved estimation using weight-height relationship
+        bmi = weight / ((height/100) ** 2)
+        # Waist estimation based on BMI
+        if bmi < 18.5:
+            return height * 0.40  # Underweight
+        elif bmi < 25:
+            return height * 0.44  # Normal
+        elif bmi < 30:
+            return height * 0.48  # Overweight
+        else:
+            return height * 0.52  # Obese
+
+    def _calculate_bmi_factor(self, height_cm: float, weight_kg: float) -> float:
+        """
+        Calculates BMI-based size adjustment factor.
+        Returns: offset to add to size index (-0.5 to +1.0)
+        """
+        if height_cm <= 0:
+            return 0
+        bmi = weight_kg / ((height_cm / 100) ** 2)
+        
+        if bmi < 18.5:
+            return -0.5  # Underweight - half size smaller
+        elif bmi < 22:
+            return -0.25  # Lean - quarter size smaller
+        elif bmi < 25:
+            return 0  # Normal - no adjustment
+        elif bmi < 28:
+            return 0.25  # Slightly overweight
+        elif bmi < 30:
+            return 0.5  # Overweight - half size larger
+        else:
+            return 1.0  # Obese - one size larger
+
+    def _calculate_gaussian_fit(self, user_val: float, min_v: float, max_v: float) -> float:
+        """
+        Calculates fit score using Gaussian (normal distribution) for professional accuracy.
+        Returns: 0-100 score where 100 = perfect fit at center of range
+        """
+        import math
+        
+        if min_v is None or max_v is None or user_val <= 0:
+            return 0
+        
+        center = (min_v + max_v) / 2
+        sigma = (max_v - min_v) / 4  # 2 sigma covers the range
+        
+        if sigma <= 0:
+            return 50  # Fallback
+        
+        # Gaussian formula: exp(-0.5 * ((x - μ) / σ)²)
+        exponent = -0.5 * ((user_val - center) / sigma) ** 2
+        score = math.exp(exponent) * 100
+        
+        return min(100, max(0, score))
+
+    def _calculate_weighted_size_score(self, size_entry: Dict, user_metrics: Dict, 
+                                        category: str, weights: Dict) -> float:
+        """
+        Calculates weighted fit score for a size using multiple metrics.
+        Returns: 0-100 weighted score
+        """
+        total_weight = 0
+        weighted_score = 0
+        
+        metric_mappings = {
+            "chest": ("min_chest", "max_chest"),
+            "waist": ("min_waist", "max_waist"),
+            "hip": ("min_hip", "max_hip"),
+            "shoulder": ("min_shoulder", "max_shoulder"),
+        }
+        
+        for metric, weight in weights.items():
+            if metric == "weight" or metric == "inseam":
+                continue  # Skip non-chart metrics
+            
+            user_val = user_metrics.get(metric, 0)
+            if user_val <= 0:
+                continue
+            
+            min_key, max_key = metric_mappings.get(metric, (None, None))
+            if not min_key:
+                continue
+            
+            min_v = size_entry.get(min_key)
+            max_v = size_entry.get(max_key)
+            
+            if min_v is not None and max_v is not None:
+                score = self._calculate_gaussian_fit(user_val, min_v, max_v)
+                weighted_score += score * weight
+                total_weight += weight
+        
+        if total_weight > 0:
+            return weighted_score / total_weight
+        return 0
+
+    def _get_brand_fit_factor(self, brand_name: str, category: str) -> float:
+        """
+        Returns brand-specific fit factor for size adjustment.
+        """
+        clean_brand = brand_name.lower().strip()
+        
+        for brand_key, factors in self.BRAND_FIT_FACTORS.items():
+            if brand_key in clean_brand or clean_brand in brand_key:
+                return factors.get(category, 1.0)
+        
+        return 1.0  # Default standard fit
+
+    def _get_body_shape_adjustment(self, body_shape: str, category: str) -> float:
+        """
+        Returns size index adjustment based on body shape.
+        """
+        shape_lower = (body_shape or "regular").lower().replace(" ", "_")
+        adjustments = self.BODY_SHAPE_ADJUSTMENTS.get(shape_lower, {"top": 0, "bottom": 0})
+        return adjustments.get(category, 0)
 
     def _detect_pant_type(self, product_data: Dict) -> str:
         """
@@ -260,11 +418,8 @@ class SizeRecommender:
     def _calculate_size_percentages(self, user_measurement: float, size_chart: List[Dict[str, Any]], 
                                      metric_key: str) -> Dict[str, int]:
         """
-        Calculates compatibility percentages for each size based on user measurement.
+        Calculates compatibility percentages using Gaussian distribution for professional accuracy.
         Returns top 3 sizes with percentages that sum to 100.
-        
-        Method: Calculate how close the user is to each size's ideal range,
-        then normalize to percentages.
         """
         if not size_chart or user_measurement <= 0:
             return {}
@@ -279,22 +434,12 @@ class SizeRecommender:
             if min_v is None or max_v is None:
                 continue
             
-            # Calculate ideal center of the range
-            center = (min_v + max_v) / 2
-            range_width = (max_v - min_v) / 2
+            # Use Gaussian fit for professional accuracy
+            score = self._calculate_gaussian_fit(user_measurement, min_v, max_v)
             
-            # Calculate distance from center (normalized)
-            distance = abs(user_measurement - center)
-            
-            # Score: Higher if closer to center
-            # Use exponential decay for smoother distribution
-            if distance <= range_width:
-                # User is within this size range - high score
-                score = 100 - (distance / range_width) * 30  # 70-100 range
-            else:
-                # User is outside this range - lower score with decay
-                excess = distance - range_width
-                score = max(0, 70 - excess * 5)  # Decay rapidly
+            # Bonus for being within range
+            if min_v <= user_measurement <= max_v:
+                score = min(100, score * 1.2)  # 20% bonus for being in range
             
             scores[label] = score
         
@@ -304,7 +449,7 @@ class SizeRecommender:
         # Get top 3 scores
         sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
         
-        # Normalize to 100%
+        # Normalize to 100% with better distribution
         total = sum(s[1] for s in sorted_scores)
         if total == 0:
             return {}
@@ -312,15 +457,14 @@ class SizeRecommender:
         percentages = {}
         for label, score in sorted_scores:
             pct = round((score / total) * 100)
-            percentages[label] = pct
+            percentages[label] = max(1, pct)  # Minimum 1%
         
         # Adjust to ensure sum is exactly 100
         current_sum = sum(percentages.values())
         if current_sum != 100 and percentages:
             diff = 100 - current_sum
-            # Add difference to highest
             top_label = sorted_scores[0][0]
-            percentages[top_label] += diff
+            percentages[top_label] = max(1, percentages[top_label] + diff)
         
         return percentages
 
@@ -382,6 +526,29 @@ class SizeRecommender:
         print(f"DEBUG: Product - Brand: {brand_name}, Category: {category}")
         
         reasons = []
+        
+        # === PROFESSIONAL OPTIMIZATION CALCULATIONS ===
+        
+        # Calculate BMI factor for size adjustment
+        bmi_factor = self._calculate_bmi_factor(u_height, u_weight)
+        if bmi_factor != 0:
+            reasons.append(f"BMI Faktörü: {'+' if bmi_factor > 0 else ''}{bmi_factor:.2f} beden ayarlaması")
+        
+        # Get brand-specific fit factor
+        brand_fit_factor = self._get_brand_fit_factor(brand_name, category)
+        if brand_fit_factor != 1.0:
+            fit_desc = "dar kalıp" if brand_fit_factor < 1.0 else "rahat kalıp"
+            reasons.append(f"Marka Kalıbı ({brand_name}): {fit_desc}")
+        
+        # Get body shape adjustment
+        body_shape_adj = self._get_body_shape_adjustment(body_shape, category)
+        if body_shape_adj != 0:
+            reasons.append(f"Vücut Tipi ({body_shape}): {'+' if body_shape_adj > 0 else ''}{body_shape_adj:.1f} beden ayarlaması")
+        
+        # Determine which weights to use
+        metric_weights = self.TOP_WEIGHTS if category == "top" else self.BOTTOM_WEIGHTS
+        
+        print(f"DEBUG: BMI Factor: {bmi_factor}, Brand Fit: {brand_fit_factor}, Body Shape Adj: {body_shape_adj}")
         
         # 1. Fetch Size Chart
         size_chart = []
@@ -628,7 +795,6 @@ class SizeRecommender:
         candidate_indices["weight"] = w_idx
 
         # 5. Step 2: The "Max-Constraint" Logic
-        # 5. Step 2: The "Max-Constraint" Logic
         # Prioritize Measurements but respect Weight as a floor.
         # If your mass dictates L, you shouldn't wear S even if your chest is small.
         
@@ -638,7 +804,27 @@ class SizeRecommender:
         ]
         
         if valid_indices:
-            final_idx = max(valid_indices)
+            # === PROFESSIONAL ADJUSTMENT APPLICATION ===
+            base_idx = max(valid_indices)
+            
+            # Apply BMI factor (affects index)
+            adjusted_idx = base_idx + bmi_factor
+            
+            # Apply body shape adjustment
+            adjusted_idx += body_shape_adj
+            
+            # Apply brand fit factor (affects how we interpret the index)
+            # Smaller fit factor means brand runs small, so we need larger size
+            if brand_fit_factor < 1.0:
+                adjusted_idx += (1.0 - brand_fit_factor) * 2  # Up to +0.2 index
+            elif brand_fit_factor > 1.0:
+                adjusted_idx -= (brand_fit_factor - 1.0) * 1.5  # Down slightly
+            
+            # Round to nearest valid index
+            final_idx = round(adjusted_idx)
+            final_idx = max(0, min(7, final_idx))  # Clamp to valid range
+            
+            print(f"DEBUG: Base Index: {base_idx}, Adjusted: {adjusted_idx:.2f}, Final: {final_idx}")
         else:
              return {"error": "Ölçülerden beden belirlenemedi."}
         
@@ -903,6 +1089,18 @@ class SizeRecommender:
         if len(size_percentages) > 1:
             secondary_info = ", ".join([f"{s}: %{p}" for s, p in list(size_percentages.items())[1:]])
             fit_message += f" ({secondary_info})"
+
+        # Generate fit preference suggestion (Tam/Bol)
+        size_order = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL"]
+        try:
+            current_idx = size_order.index(top_size.upper())
+            if current_idx < len(size_order) - 1:
+                next_size = size_order[current_idx + 1]
+                fit_suggestion = f"\n\n💡 Giyim Tercihi: Tam oturan istiyorsanız {top_size}, daha rahat/bol istiyorsanız {next_size} bedenini tercih edebilirsiniz."
+                detailed_report += fit_suggestion
+        except (ValueError, IndexError):
+            # If size not in standard order (like numeric sizes), skip this suggestion
+            pass
 
         print(f"DEBUG: Size Percentages: {size_percentages}")
 
