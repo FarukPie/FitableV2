@@ -245,6 +245,50 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                                               style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6)),
                                             ),
                                           ),
+                                          
+                                       // Quick Stats Summary
+                                       const SizedBox(height: 20),
+                                       Row(
+                                         mainAxisAlignment: MainAxisAlignment.center,
+                                         children: [
+                                           _buildQuickStat(
+                                             context,
+                                             icon: Icons.height,
+                                             label: "Boy",
+                                             value: _heightController.text.isNotEmpty 
+                                               ? "${_heightController.text} cm" 
+                                               : "-",
+                                           ),
+                                           Container(
+                                             height: 40,
+                                             width: 1,
+                                             color: Colors.grey.withOpacity(0.3),
+                                             margin: const EdgeInsets.symmetric(horizontal: 16),
+                                           ),
+                                           _buildQuickStat(
+                                             context,
+                                             icon: Icons.monitor_weight_outlined,
+                                             label: "Kilo",
+                                             value: _weightController.text.isNotEmpty 
+                                               ? "${_weightController.text} kg" 
+                                               : "-",
+                                           ),
+                                           if (_currentBodyShape != null) ...[
+                                             Container(
+                                               height: 40,
+                                               width: 1,
+                                               color: Colors.grey.withOpacity(0.3),
+                                               margin: const EdgeInsets.symmetric(horizontal: 16),
+                                             ),
+                                             _buildQuickStat(
+                                               context,
+                                               icon: _getShapeIcon(_currentBodyShape!),
+                                               label: "Vücut",
+                                               value: _getShapeLabel(_currentBodyShape!),
+                                             ),
+                                           ],
+                                         ],
+                                       ),
                                     ],
                                   ),
                                 );
@@ -349,59 +393,88 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
                           _buildSectionTitle(AppLocalizations.of(context)!.bodyMeasurements),
                           const SizedBox(height: 12),
                           
-                          // --- Hand Span Toggle Section ---
+                          // --- Hand Span Toggle Section (Improved) ---
                           Container(
                              decoration: BoxDecoration(
-                               color: _isHandSpanMode ? Theme.of(context).primaryColor.withOpacity(0.15) : Theme.of(context).cardTheme.color,
-                               borderRadius: BorderRadius.circular(16),
-                               border: Border.all(color: _isHandSpanMode ? Theme.of(context).primaryColor : Colors.transparent),
-                             ),
-                             child: SwitchListTile(
-                               title: Text(AppLocalizations.of(context)!.handSpanMode, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
-                               subtitle: Text(
-                                   _estimatedHandSpan > 0 
-                                     ? AppLocalizations.of(context)!.handSpanInfo(_estimatedHandSpan.toStringAsFixed(1))
-                                     : AppLocalizations.of(context)!.enterHeightFirst,
-                                   style: TextStyle(color: _estimatedHandSpan > 0 ? Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7) : Colors.grey)
-                               ),
-                               value: _isHandSpanMode,
-                               onChanged: _estimatedHandSpan > 0 
-                                 ? (val) {
-                                     if (val) {
-                                       showDialog(
-                                         context: context,
-                                         builder: (context) => AlertDialog(
-                                           backgroundColor: Theme.of(context).cardTheme.color,
-                                            title: Row(
-                                              children: [
-                                                Icon(Icons.info_outline, color: Theme.of(context).primaryColor),
-                                                const SizedBox(width: 10),
-                                                Text("Bilgilendirme", style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
-                                              ],
-                                            ),
-                                           content: Text(
-                                             "Karış hesabı yöntemiyle tahmini ölçümlerinizi girebilirsiniz. \n\nDetaylı bilgi için lütfen ilgili kutucukların yanındaki bilgi (i) butonlarını kullanın.",
-                                             style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
-                                           ),
-                                           actions: [
-                                             TextButton(
-                                               onPressed: () {
-                                                 Navigator.pop(context);
-                                                 setState(() => _isHandSpanMode = true);
-                                               },
-                                               child: Text("Anladım", style: TextStyle(color: Theme.of(context).primaryColor)),
-                                             )
-                                           ],
-                                         ),
-                                       );
-                                     } else {
-                                       setState(() => _isHandSpanMode = false);
-                                     }
-                                 }
+                               gradient: _isHandSpanMode 
+                                 ? LinearGradient(
+                                     colors: [
+                                       Theme.of(context).primaryColor.withOpacity(0.2),
+                                       Theme.of(context).primaryColor.withOpacity(0.1),
+                                     ],
+                                   )
                                  : null,
-                               activeColor: Theme.of(context).primaryColor,
-                               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                               secondary: Icon(Icons.handshake_outlined, color: _isHandSpanMode ? Theme.of(context).primaryColor : Colors.grey),
+                               color: _isHandSpanMode ? null : Theme.of(context).cardTheme.color,
+                               borderRadius: BorderRadius.circular(16),
+                               border: Border.all(
+                                 color: _isHandSpanMode 
+                                   ? Theme.of(context).primaryColor 
+                                   : Colors.grey.withOpacity(0.3),
+                                 width: _isHandSpanMode ? 2 : 1,
+                               ),
+                             ),
+                             child: Column(
+                               children: [
+                                 SwitchListTile(
+                                   title: Row(
+                                     children: [
+                                       Text("✋ ", style: TextStyle(fontSize: 20)),
+                                       Text(
+                                         AppLocalizations.of(context)!.handSpanMode, 
+                                         style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)
+                                       ),
+                                     ],
+                                   ),
+                                   subtitle: Padding(
+                                     padding: const EdgeInsets.only(top: 4.0),
+                                     child: Text(
+                                         _estimatedHandSpan > 0 
+                                           ? "Tahmini karış: ${_estimatedHandSpan.toStringAsFixed(1)} cm"
+                                           : AppLocalizations.of(context)!.enterHeightFirst,
+                                         style: TextStyle(
+                                           color: _estimatedHandSpan > 0 
+                                             ? Theme.of(context).primaryColor 
+                                             : Colors.grey,
+                                           fontWeight: _estimatedHandSpan > 0 ? FontWeight.w500 : FontWeight.normal,
+                                         )
+                                     ),
+                                   ),
+                                   value: _isHandSpanMode,
+                                   onChanged: _estimatedHandSpan > 0 
+                                     ? (val) {
+                                         if (val) {
+                                           _showHandSpanTutorial();
+                                         } else {
+                                           setState(() => _isHandSpanMode = false);
+                                         }
+                                     }
+                                     : null,
+                                   activeColor: Theme.of(context).primaryColor,
+                                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                 ),
+                                 // Quick tip when active
+                                 if (_isHandSpanMode)
+                                   Container(
+                                     margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                                     padding: const EdgeInsets.all(12),
+                                     decoration: BoxDecoration(
+                                       color: Theme.of(context).primaryColor.withOpacity(0.1),
+                                       borderRadius: BorderRadius.circular(12),
+                                     ),
+                                     child: Row(
+                                       children: [
+                                         Icon(Icons.lightbulb_outline, color: Theme.of(context).primaryColor, size: 20),
+                                         const SizedBox(width: 10),
+                                         Expanded(
+                                           child: Text(
+                                             "Ölçümleri karış sayısı olarak girin. Örn: Göğüs = 4.5 karış",
+                                             style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color),
+                                           ),
+                                         ),
+                                       ],
+                                     ),
+                                   ),
+                               ],
                              ),
                           ),
                           const SizedBox(height: 16),
@@ -668,6 +741,30 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
     );
   }
 
+  Widget _buildQuickStat(BuildContext context, {required IconData icon, required String label, required String value}) {
+    return Column(
+      children: [
+        Icon(icon, color: Theme.of(context).primaryColor, size: 24),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6),
+          ),
+        ),
+      ],
+    );
+  }
+
   // Wrapper for dynamic input based on mode
   Widget _buildDynamicInput(String label, TextEditingController controller, {String? guideTitle, String? guideText}) {
        String displayText = label;
@@ -825,6 +922,138 @@ class _MeasureFormScreenState extends State<MeasureFormScreen> {
       case 'rectangular': return Icons.crop_portrait;
       default: return Icons.help_outline;
     }
+  }
+
+  void _showHandSpanTutorial() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Theme.of(context).cardTheme.color,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Text("✋", style: TextStyle(fontSize: 48)),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                "Karış Hesabı Nasıl Yapılır?",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Steps
+              _buildTutorialStep(
+                context,
+                "1",
+                "Elinizi açın 🖐️",
+                "Baş parmak ve serçe parmağınızı maksimum uzatın",
+              ),
+              const SizedBox(height: 12),
+              _buildTutorialStep(
+                context,
+                "2",
+                "Mesafeyi ölçün 📏",
+                "İki parmak ucu arasındaki mesafe = 1 karış",
+              ),
+              const SizedBox(height: 12),
+              _buildTutorialStep(
+                context,
+                "3",
+                "Ölçümlerinizi sayın 🔢",
+                "Göğüs çevreniz kaç karış? → O sayıyı girin",
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Info box
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.amber[700], size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        "Tahmini karışınız: ${_estimatedHandSpan.toStringAsFixed(1)} cm\n(Boyunuza göre hesaplandı)",
+                        style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodyMedium?.color),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    setState(() => _isHandSpanMode = true);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text("Anladım, Başla!", style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTutorialStep(BuildContext context, String number, String title, String subtitle) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: Theme.of(context).primaryColor,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(number, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color)),
+              Text(subtitle, style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7))),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   void _showInstructionPopup() {

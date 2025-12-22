@@ -10,8 +10,14 @@ import 'package:url_launcher/url_launcher.dart';
 class ResultScreen extends StatelessWidget {
   final RecommendationResult result;
   final String productUrl;
+  final bool isFromCloset;  // Flag to hide "Add to Closet" button
 
-  const ResultScreen({super.key, required this.result, required this.productUrl});
+  const ResultScreen({
+    super.key, 
+    required this.result, 
+    required this.productUrl,
+    this.isFromCloset = false,  // Default to false
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -287,34 +293,36 @@ class ResultScreen extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
 
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      try {
-                        await Provider.of<AppProvider>(context, listen: false)
-                            .addToCloset(result, productUrl);
-                        
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(AppLocalizations.of(context)!.addedToClosetMessage)),
-                        );
-                        // Optional: Navigate to Closet or Home?
-                        // User said "discard throws back", didn't specify for add. 
-                        // I'll stay on screen or go back. Let's go home for better flow.
-                        Navigator.pop(context); 
-                      } catch (e) {
-                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("${AppLocalizations.of(context)!.errorMessage}: $e")));
-                      }
-                    },
-                    icon: const Icon(Icons.checkroom),
-                    label: Text(AppLocalizations.of(context)!.addToClosetButton),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                // Add to Closet Button - Only show if NOT from closet
+                if (!isFromCloset)
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        try {
+                          await Provider.of<AppProvider>(context, listen: false)
+                              .addToCloset(result, productUrl);
+                          
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(AppLocalizations.of(context)!.addedToClosetMessage)),
+                          );
+                          // Optional: Navigate to Closet or Home?
+                          // User said "discard throws back", didn't specify for add. 
+                          // I'll stay on screen or go back. Let's go home for better flow.
+                          Navigator.pop(context); 
+                        } catch (e) {
+                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("${AppLocalizations.of(context)!.errorMessage}: $e")));
+                        }
+                      },
+                      icon: const Icon(Icons.checkroom),
+                      label: Text(AppLocalizations.of(context)!.addToClosetButton),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ],
