@@ -531,60 +531,72 @@ class SizeRecommender:
         
         return percentages
 
-    def _calculate_numeric_pant_percentages(self, waist_cm: float, pant_type: str) -> Dict[str, int]:
+    def _calculate_numeric_pant_percentages(self, waist_cm: float, available_sizes: List[str], pant_type: str = "numeric") -> Dict[str, int]:
         """
         Calculates compatibility percentages for numeric pant sizes.
-        - jean: W28, W29, W30, W31, W32, W33, W34, etc. (inch based)
-        - formal: EU 44, 46, 48, 50, 52 (even numbers)
+        CRITICAL: Uses only the available_sizes from the product, not calculated sizes.
+        
+        Args:
+            waist_cm: User's waist measurement in cm
+            available_sizes: List of actual sizes available for the product (e.g., ["30", "31", "32"])
+            pant_type: 'jean' for inch-based, 'formal' for EU, 'numeric' for generic
         
         Returns top 3 sizes with percentages.
         """
         import math
         
-        if waist_cm <= 0:
+        if waist_cm <= 0 or not available_sizes:
             return {}
         
         scores = {}
         
-        if pant_type == "jean":
-            # Convert waist cm to inches for jeans
-            waist_inch = waist_cm / 2.54
-            
-            # Generate nearby sizes (3 below, 3 above the calculated size)
-            center_size = round(waist_inch)
-            sizes_to_check = list(range(max(26, center_size - 3), min(42, center_size + 4)))
-            
-            for size in sizes_to_check:
-                # Each jean size covers ~1 inch range
-                size_center = size
-                
-                # Gaussian-like scoring
-                distance = abs(waist_inch - size_center)
-                score = max(0, 100 - (distance * 30))  # ~30 points per inch off
-                
-                if score > 0:
-                    scores[str(size)] = score
+        # Filter to only numeric sizes
+        numeric_sizes = []
+        for size in available_sizes:
+            size_str = str(size).strip()
+            if size_str.isdigit():
+                numeric_sizes.append(int(size_str))
         
-        elif pant_type == "formal":
-            # EU size calculation: approximately (waist_cm / 2) + 6
+        if not numeric_sizes:
+            print(f"DEBUG: No numeric sizes found in available_sizes: {available_sizes}")
+            return {}
+        
+        print(f"DEBUG: Calculating percentages for numeric sizes: {numeric_sizes}, waist: {waist_cm}cm")
+        
+        # Determine ideal size based on waist measurement
+        # For jeans/pants, numeric size typically represents waist in inches or half-waist in cm
+        waist_inch = waist_cm / 2.54
+        
+        # Detect if sizes are inch-based (26-42) or cm-based (shorter pants)
+        avg_size = sum(numeric_sizes) / len(numeric_sizes)
+        
+        if avg_size >= 26 and avg_size <= 42:
+            # These are waist sizes in inches (typical jeans sizing)
+            ideal_size = waist_inch
+            spread = 25  # Points lost per inch difference
+            print(f"DEBUG: Detected inch-based sizing. Ideal size: {ideal_size:.1f} inches")
+        else:
+            # Could be EU or other format - use the numeric value directly
+            # For EU: size ≈ (waist_cm / 2) + 6
             ideal_eu = (waist_cm / 2) + 6
+            ideal_size = ideal_eu
+            spread = 15
+            print(f"DEBUG: Detected EU-style sizing. Ideal size: {ideal_size:.1f}")
+        
+        # Calculate compatibility score for each actual available size
+        for size in numeric_sizes:
+            distance = abs(ideal_size - size)
+            score = max(0, 100 - (distance * spread))
             
-            # EU sizes are even: 44, 46, 48, 50, 52, etc.
-            # Generate nearby even sizes
-            center_eu = round(ideal_eu / 2) * 2  # Round to nearest even
-            sizes_to_check = list(range(max(42, center_eu - 6), min(60, center_eu + 8), 2))
-            
-            for size in sizes_to_check:
-                # Each EU size covers ~2cm waist range
-                size_ideal_waist = (size - 6) * 2
-                distance = abs(waist_cm - size_ideal_waist)
-                score = max(0, 100 - (distance * 15))  # ~15 points per cm off
-                
-                if score > 0:
-                    scores[str(size)] = score
+            if score > 0:
+                scores[str(size)] = score
+                print(f"DEBUG: Size {size}: distance={distance:.2f}, score={score:.1f}")
         
         if not scores:
-            return {}
+            # Fallback: Use closest available size with 90% confidence
+            closest_size = min(numeric_sizes, key=lambda s: abs(ideal_size - s))
+            scores[str(closest_size)] = 90
+            print(f"DEBUG: Fallback - using closest size {closest_size}")
         
         # Get top 3 scores
         sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
@@ -606,6 +618,7 @@ class SizeRecommender:
             top_label = sorted_scores[0][0]
             percentages[top_label] = max(1, percentages[top_label] + diff)
         
+        print(f"DEBUG: Final percentages from available sizes: {percentages}")
         return percentages
 
     def get_recommendation(self, user_id: str, product_data: Dict) -> Dict[str, Any]:
@@ -1150,6 +1163,9 @@ class SizeRecommender:
             
             # --- JEAN: Denim/Jeans - W/L format (W32/L32) ---
             elif pant_type == "jean":
+                # Get available sizes from product
+                available_sizes = product_data.get("available_sizes", [])
+                
                 # Calculate Inseam (Leg Length)
                 if u_inseam > 0:
                     leg_len_cm = u_inseam
@@ -1164,25 +1180,72 @@ class SizeRecommender:
                 if u_hips > 0:
                     report_lines.append(f"Kalça: {u_hips:.1f}cm kontrol edildi.")
                 
-                report_lines.append(f"Jean Hesabı: Bel {target_waist:.1f}cm -> W{w_inch}, Bacak -> L{l_inch}")
-                
-                # Return W/L format
-                final_label = str(w_inch)
-                fit_message = f"W{w_inch}/L{l_inch} Beden Öneriyoruz"
-                detailed_report += f"\n\nÖzel Tavsiye: Jean bedeniniz W{w_inch}/L{l_inch} olarak hesaplanmıştır. (Bel: {w_inch} inch, Bacak: {l_inch} inch)"
+                # Use actual available sizes if we have them
+                if available_sizes:
+                    numeric_sizes = [int(s) for s in available_sizes if str(s).isdigit() and 26 <= int(s) <= 42]
+                    if numeric_sizes:
+                        # Find best matching size from available options
+                        waist_inch = target_waist / 2.54
+                        best_size = min(numeric_sizes, key=lambda s: abs(s - waist_inch))
+                        final_label = str(best_size)
+                        report_lines.append(f"Jean Hesabı: Bel {target_waist:.1f}cm -> {best_size} (mevcut bedenlerden seçildi)")
+                        fit_message = f"{best_size} Beden Öneriyoruz"
+                        detailed_report += f"\n\nÖzel Tavsiye: Mevcut bedenler: {numeric_sizes}. Bel ölçünüze en uygun beden: {best_size}"
+                    else:
+                        report_lines.append(f"Jean Hesabı: Bel {target_waist:.1f}cm -> W{w_inch}")
+                        final_label = str(w_inch)
+                        fit_message = f"W{w_inch}/L{l_inch} Beden Öneriyoruz"
+                        detailed_report += f"\n\nÖzel Tavsiye: Jean bedeniniz W{w_inch}/L{l_inch} olarak hesaplanmıştır."
+                else:
+                    report_lines.append(f"Jean Hesabı: Bel {target_waist:.1f}cm -> W{w_inch}, Bacak -> L{l_inch}")
+                    final_label = str(w_inch)
+                    fit_message = f"W{w_inch}/L{l_inch} Beden Öneriyoruz"
+                    detailed_report += f"\n\nÖzel Tavsiye: Jean bedeniniz W{w_inch}/L{l_inch} olarak hesaplanmıştır. (Bel: {w_inch} inch, Bacak: {l_inch} inch)"
             
-            # --- FORMAL: Kumaş Pantolon - EU numeric (46, 48, 50) ---
+            # --- FORMAL: Numeric pants (30, 31, 32 or EU 46, 48, 50) ---
             elif pant_type == "formal":
-                # EU Size calculation: Waist cm -> EU size
-                # Approximate: EU Size = (Waist_cm / 2) + 6
-                # 80cm waist -> 46, 84cm -> 48, 88cm -> 50, etc.
-                eu_size = round((target_waist / 2) + 6)
-                # Round to nearest even number (EU sizes are typically even)
-                eu_size = round(eu_size / 2) * 2
+                # CRITICAL: Use available_sizes from product to recommend correct format
+                available_sizes = product_data.get("available_sizes", [])
+                
+                # Extract numeric sizes from available options
+                numeric_sizes = [int(s) for s in available_sizes if str(s).isdigit()]
+                
+                print(f"DEBUG FORMAL: available_sizes={available_sizes}, numeric_sizes={numeric_sizes}")
+                
+                if numeric_sizes:
+                    # Determine sizing system based on available sizes
+                    avg_size = sum(numeric_sizes) / len(numeric_sizes)
+                    
+                    if avg_size >= 26 and avg_size <= 42:
+                        # These are waist sizes in inches (like jeans: 30, 31, 32)
+                        waist_inch = target_waist / 2.54
+                        best_size = min(numeric_sizes, key=lambda s: abs(s - waist_inch))
+                        report_lines.append(f"Pantolon (Inch): Bel {target_waist:.1f}cm = {waist_inch:.1f} inch")
+                        report_lines.append(f"Mevcut bedenler: {sorted(numeric_sizes)}")
+                        report_lines.append(f"En uygun beden: {best_size}")
+                    else:
+                        # EU size format (44, 46, 48, 50)
+                        ideal_eu = round((target_waist / 2) + 6)
+                        best_size = min(numeric_sizes, key=lambda s: abs(s - ideal_eu))
+                        report_lines.append(f"Pantolon (EU): Bel {target_waist:.1f}cm -> EU {ideal_eu}")
+                        report_lines.append(f"Mevcut bedenler: {sorted(numeric_sizes)}")
+                        report_lines.append(f"En uygun beden: EU {best_size}")
+                    
+                    final_label = str(best_size)
+                    fit_message = f"{best_size} Beden Öneriyoruz"
+                    detailed_report += f"\n\nÖzel Tavsiye: Mevcut bedenler ({sorted(numeric_sizes)}) içinden bel ölçünüze ({target_waist:.1f}cm) en uygun beden: {best_size}"
+                else:
+                    # Fallback: Calculate EU size if no available sizes
+                    eu_size = round((target_waist / 2) + 6)
+                    eu_size = round(eu_size / 2) * 2  # Round to nearest even
+                    
+                    report_lines.append(f"Kumaş Pantolon Hesabı: Bel {target_waist:.1f}cm -> EU {eu_size}")
+                    final_label = str(eu_size)
+                    fit_message = f"EU {eu_size} Beden Öneriyoruz"
+                    detailed_report += f"\n\nÖzel Tavsiye: Kumaş pantolon için EU {eu_size} beden önerilmektedir."
                 
                 # Calculate leg length for reference
                 if u_inseam > 0:
-                    leg_len_cm = u_inseam
                     report_lines.append(f"İç Bacak: {u_inseam}cm")
                 else:
                     leg_len_cm = u_height * 0.45
@@ -1190,13 +1253,6 @@ class SizeRecommender:
                 
                 if u_hips > 0:
                     report_lines.append(f"Kalça: {u_hips:.1f}cm kontrol edildi.")
-                
-                report_lines.append(f"Kumaş Pantolon Hesabı: Bel {target_waist:.1f}cm -> EU {eu_size}")
-                
-                # Return EU size format
-                final_label = str(eu_size)
-                fit_message = f"EU {eu_size} Beden Öneriyoruz"
-                detailed_report += f"\n\nÖzel Tavsiye: Kumaş pantolon için EU {eu_size} beden (bel ölçünüz: {target_waist:.1f}cm) önerilmektedir."
 
         
         if is_fallback:
@@ -1215,9 +1271,10 @@ class SizeRecommender:
         primary_metric = target_chest if category == "top" else target_waist
         metric_key = "chest" if category == "top" else "waist"
         
-        # For pants with numeric sizes (jeans, formal), calculate numeric percentages
+        # For pants with numeric sizes, use the actual available sizes
         if category == "bottom" and pant_type in ["jean", "formal"]:
-            size_percentages = self._calculate_numeric_pant_percentages(target_waist, pant_type)
+            available_sizes = product_data.get("available_sizes", [])
+            size_percentages = self._calculate_numeric_pant_percentages(target_waist, available_sizes, pant_type)
         else:
             size_percentages = self._calculate_size_percentages(primary_metric, size_chart, metric_key)
         
