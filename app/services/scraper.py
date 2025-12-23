@@ -226,44 +226,6 @@ class ProductScraper:
                 except:
                     print("Timeout waiting for h1, proceeding with DOM content.")
 
-                # ====== TRENDYOL DYNAMIC SIZE EXTRACTION (Playwright-based) ======
-                # Trendyol sizes are loaded via JavaScript, need direct DOM access
-                # OPTIMIZED: Fast extraction with minimal delay
-                if "trendyol" in url.lower():
-                    try:
-                        # Quick selectors for Trendyol size buttons
-                        size_selectors = [".sp-itm", ".slc-txt"]
-                        extracted_sizes = []
-                        
-                        for selector in size_selectors:
-                            try:
-                                elements = await page.query_selector_all(selector)
-                                if elements and len(elements) > 0:
-                                    for el in elements[:20]:  # Limit to first 20 to be fast
-                                        try:
-                                            text = await el.inner_text()
-                                            text = text.strip().upper().replace("BEDEN", "").strip()
-                                            if text and len(text) <= 5:
-                                                if text in ["XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL"]:
-                                                    extracted_sizes.append(text)
-                                                elif text.isdigit() and 26 <= int(text) <= 60:
-                                                    extracted_sizes.append(text)
-                                        except:
-                                            continue
-                                    if extracted_sizes:
-                                        print(f"DEBUG: Playwright sizes: {extracted_sizes}")
-                                        break
-                            except:
-                                continue
-                        
-                        if extracted_sizes:
-                            data["available_sizes"] = list(dict.fromkeys(extracted_sizes))
-                    except Exception as e:
-                        print(f"DEBUG: Size extraction skipped: {e}")
-                
-                # Get content for BeautifulSoup
-                content = await page.content()
-
                 soup = BeautifulSoup(content, 'html.parser')
                 print(f"Page Title: {soup.title.string if soup.title else 'No Title'}")
 
