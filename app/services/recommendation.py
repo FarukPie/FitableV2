@@ -221,7 +221,7 @@ class SizeRecommender:
         """Returns ease allowance (cm) based on product type keywords."""
         text = product_text.lower()
         if "jacket" in text or "ceket" in text or "coat" in text or "mont" in text:
-            return 4.0 # Outerwear needs room
+            return -4.0 # Dış giyim için bir beden küçük öner (üste iç giysi giyileceği için)
         if "hoodie" in text or "sweatshirt" in text:
             return 2.0 # Loose fit usually
         return 0.0
