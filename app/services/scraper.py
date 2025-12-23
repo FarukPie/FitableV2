@@ -473,16 +473,36 @@ class ProductScraper:
                         break
         
         # Extract Available Size Options (Critical for proper size format detection)
-        # Trendyol uses .variants .variant-list or .sp-itm for sizes
+        # Trendyol uses various elements for sizes - try multiple selectors
         size_options = []
-        for sel in [".variants .variant-list .sp-itm", ".size-variant-wrapper button", ".variant-property button", ".slc-txt", ".sp-itm", "[data-testid='size-selector'] button", ".size-list button"]:
+        
+        # CSS selectors for size buttons/options on Trendyol
+        size_selectors = [
+            ".variants .variant-list .sp-itm",
+            ".size-variant-wrapper button",
+            ".variant-property button",
+            ".slc-txt",
+            ".sp-itm",
+            "[data-testid='size-selector'] button",
+            ".size-list button",
+            ".size-variant button",
+            ".product-detail-size-selector-container button",
+            ".size-attribute .size-item",
+            "[class*='size'] button",
+            "[class*='variant'] [class*='item']",
+        ]
+        
+        for sel in size_selectors:
             tags = soup.select(sel)
             if tags:
                 for tag in tags:
                     size_text = self._clean_text(tag.get_text())
+                    # Clean up the size text - remove "Beden" suffix if present
+                    size_text = size_text.replace("Beden", "").replace("beden", "").strip()
                     if size_text and len(size_text) <= 10:  # Reasonable size label length
                         size_options.append(size_text.upper().strip())
                 if size_options:
+                    print(f"DEBUG: Found sizes via CSS selector '{sel}': {size_options}")
                     break
         
         # Fallback: Search for size-related JSON in scripts
@@ -490,16 +510,29 @@ class ProductScraper:
             import re
             script_tags = soup.find_all("script")
             for script in script_tags:
-                if script.string and "allVariants" in script.string:
-                    # Try to extract sizes from variant JSON
-                    size_pattern = re.compile(r'"value"\s*:\s*"([XSML0-9]+)"', re.IGNORECASE)
-                    matches = size_pattern.findall(script.string)
-                    if matches:
-                        size_options = list(set([m.upper() for m in matches if len(m) <= 5]))
-                        break
+                if script.string:
+                    # Try to find allVariants or similar size data
+                    if "allVariants" in script.string or "attributeValue" in script.string:
+                        # Pattern for size values in JSON - captures numeric (30, 31, 32) and letter (S, M, L, XL)
+                        size_pattern = re.compile(r'"value"\s*:\s*"([A-Z0-9]{1,5})"', re.IGNORECASE)
+                        matches = size_pattern.findall(script.string)
+                        if matches:
+                            # Filter to valid size values
+                            valid_sizes = []
+                            for m in matches:
+                                m_upper = m.upper().strip()
+                                # Check if it's a letter size or numeric size
+                                if m_upper in ["XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL"]:
+                                    valid_sizes.append(m_upper)
+                                elif m.isdigit() and 26 <= int(m) <= 50:  # Pant size range
+                                    valid_sizes.append(m)
+                            if valid_sizes:
+                                size_options = list(set(valid_sizes))
+                                print(f"DEBUG: Found sizes via script JSON: {size_options}")
+                                break
         
         if size_options:
-            # Remove duplicates and sort
+            # Remove duplicates while preserving order
             size_options = list(dict.fromkeys(size_options))
             data["available_sizes"] = size_options
             print(f"DEBUG: Extracted Trendyol sizes: {size_options}")

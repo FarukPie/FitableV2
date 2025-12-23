@@ -360,39 +360,71 @@ class SizeRecommender:
         Detects the type of pants for appropriate size format.
         Returns: 'jean', 'formal', 'casual', 'short'
         - jean: Denim/Jeans -> W/L format (W32/L32)
-        - formal: Kumaş pantolon -> EU numeric (46, 48, 50)
+        - formal: Numeric pants (30, 31, 32) -> numeric format
         - casual: Eşofman/Jogger/Generic pants with S/M/L sizes -> S/M/L
         - short: Şort/Etek -> S/M/L (leg length irrelevant)
         """
         text = str(product_data).lower()
         
         # PRIORITY 1: Check available_sizes from scraper (most reliable)
-        # If the product has S/M/L sizes, use S/M/L format regardless of product name
         available_sizes = product_data.get("available_sizes", [])
+        
+        print(f"DEBUG _detect_pant_type: available_sizes = {available_sizes}")
+        
         if available_sizes:
             letter_sizes = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL"]
-            has_letter_sizes = any(size.upper() in letter_sizes for size in available_sizes)
             
             # Check for W/L jeans format (W28, W30, etc.)
-            has_jeans_format = any(size.upper().startswith("W") or "/" in size for size in available_sizes)
+            has_jeans_format = any(
+                str(size).upper().startswith("W") or "/" in str(size) 
+                for size in available_sizes
+            )
             
-            # Check for purely numeric sizes (44, 46, 48, etc.)
-            has_numeric_sizes = any(size.isdigit() and int(size) >= 30 for size in available_sizes if size.isdigit())
+            # Check for purely numeric sizes (30, 31, 32, etc.)
+            # This is CRITICAL for pants - must be checked BEFORE letter sizes
+            numeric_sizes = []
+            has_letter_sizes = False
+            
+            for size in available_sizes:
+                size_str = str(size).strip().upper()
+                # Check if it's a letter size
+                if size_str in letter_sizes:
+                    has_letter_sizes = True
+                # Check if it's a pure number >= 26 (pants sizes)
+                elif size_str.isdigit():
+                    num = int(size_str)
+                    if 26 <= num <= 50:  # Typical pant size range
+                        numeric_sizes.append(num)
+            
+            has_numeric_sizes = len(numeric_sizes) > 0
             
             print(f"DEBUG: Size format detection - Letter: {has_letter_sizes}, Jeans: {has_jeans_format}, Numeric: {has_numeric_sizes}")
-            print(f"DEBUG: Available sizes: {available_sizes}")
+            print(f"DEBUG: Numeric sizes found: {numeric_sizes}")
             
             if has_jeans_format:
+                print("DEBUG: Returning 'jean' (W/L format detected)")
                 return "jean"
+            
+            # PRIORITY: If product has ONLY numeric sizes, use numeric format
+            # This fixes the issue where pants with 30, 31, 32 were getting S/M/L
+            elif has_numeric_sizes and not has_letter_sizes:
+                print("DEBUG: Returning 'formal' (pure numeric sizes detected)")
+                return "formal"
+            
             elif has_letter_sizes:
                 # Check if it's a short/skirt first
                 short_keywords = ["şort", "sort", "short", "bermuda", "kapri", "capri", 
                                   "kısa pantolon", "kisa pantolon", "etek", "skirt", "mini", "midi"]
                 if any(kw in text for kw in short_keywords):
+                    print("DEBUG: Returning 'short' (letter sizes + short keywords)")
                     return "short"
-                return "casual"  # S/M/L format for pants
+                print("DEBUG: Returning 'casual' (letter sizes detected)")
+                return "casual"
+            
             elif has_numeric_sizes:
-                return "formal"  # EU numeric format
+                # Numeric sizes with possibility of mixed format
+                print("DEBUG: Returning 'formal' (numeric sizes detected as fallback)")
+                return "formal"
         
         # PRIORITY 2: Fallback to keyword-based detection
         # Check shorts/skirts first (leg length irrelevant)
@@ -417,12 +449,13 @@ class SizeRecommender:
         formal_keywords = ["kumaş pantolon", "kumas pantolon", "klasik pantolon",
                            "chino", "slacks", "dress pant", "formal", "takım elbise",
                            "takim elbise", "palazzo", "wide leg", "geniş paça", "genis paca",
-                           "cropped", "ankle", "cigarette", "straight", "regular fit pantolon"]
+                           "cropped", "ankle", "cigarette", "straight", "regular fit pantolon",
+                           "canvas", "keten", "linen"]
         if any(kw in text for kw in formal_keywords):
             return "formal"
         
-        # Default: if it's a generic "pantolon" or "pant", use casual (S/M/L) as safer default
-        # Many Trendyol pants use S/M/L even for kumaş pantolon
+        # Default: if it's a generic "pantolon" or "pant", check if we have any size info
+        # If scraper couldn't get sizes, assume casual (S/M/L) as safer default
         if "pantolon" in text or "pant" in text or "trouser" in text:
             return "casual"
         
