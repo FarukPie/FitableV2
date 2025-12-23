@@ -62,20 +62,7 @@ class HistoryItemCreate(BaseModel):
     price: str
     recommended_size: str
     confidence_score: float
-
-    class Config:
-        from_attributes = True
-
-class HistoryItemCreate(BaseModel):
-    user_id: str
-    product_name: str
-    brand: str
-    product_url: str
-    image_url: str
-    price: str
-    recommended_size: str
-    confidence_score: float
-
+    size_percentages: Optional[str] = None  # JSON string: {"31": 38, "30": 24, "32": 38}
 
     class Config:
         from_attributes = True

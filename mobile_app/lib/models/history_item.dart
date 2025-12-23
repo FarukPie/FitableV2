@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class HistoryItem {
   final String id;
   final String userId;
@@ -8,6 +10,7 @@ class HistoryItem {
   final String price;
   final String recommendedSize;
   final double confidenceScore;
+  final Map<String, int> sizePercentages; // Stored percentages from recommendation
   final DateTime createdAt;
 
   HistoryItem({
@@ -20,10 +23,27 @@ class HistoryItem {
     required this.price,
     required this.recommendedSize,
     required this.confidenceScore,
+    required this.sizePercentages,
     required this.createdAt,
   });
 
   factory HistoryItem.fromJson(Map<String, dynamic> json) {
+    // Parse size_percentages from JSON string if available
+    Map<String, int> percentages = {};
+    if (json['size_percentages'] != null && json['size_percentages'] is String) {
+      try {
+        final jsonStr = json['size_percentages'] as String;
+        if (jsonStr.isNotEmpty && jsonStr.startsWith('{')) {
+          final Map<String, dynamic> parsed = jsonDecode(jsonStr);
+          parsed.forEach((key, value) {
+            percentages[key] = (value as num).toInt();
+          });
+        }
+      } catch (e) {
+        // If parsing fails, percentages remain empty
+      }
+    }
+    
     return HistoryItem(
       id: json['id'] ?? '',
       userId: json['user_id'] ?? '',
@@ -34,6 +54,7 @@ class HistoryItem {
       price: json['price'] ?? '',
       recommendedSize: json['recommended_size'] ?? 'N/A',
       confidenceScore: (json['confidence_score'] as num?)?.toDouble() ?? 0.0,
+      sizePercentages: percentages,
       createdAt: DateTime.parse(json['created_at']),
     );
   }

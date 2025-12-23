@@ -217,6 +217,11 @@ class ApiService {
   Future<void> addToCloset(RecommendationResult result, String userId, String productUrl) async {
     final url = Uri.parse('$baseUrl/history/add'); 
     try {
+      // Convert size percentages map to JSON string for storage
+      final sizePercentagesJson = result.sizePercentages.isNotEmpty 
+          ? jsonEncode(result.sizePercentages)
+          : null;
+      
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -231,6 +236,7 @@ class ApiService {
           'confidence_score': result.sizePercentages.isNotEmpty 
               ? result.sizePercentages.values.first / 100.0  // Convert top % to decimal
               : 0.9,
+          'size_percentages': sizePercentagesJson,  // NEW: Store all percentages
         }),
       ).timeout(const Duration(seconds: 30));
 

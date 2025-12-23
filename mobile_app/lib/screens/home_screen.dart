@@ -456,39 +456,50 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showRecommendationPreview(HistoryItem item) {
-    // Convert HistoryItem to RecommendationResult with estimated percentages
-    final topPct = (item.confidenceScore * 100).round();
-    final secondPct = ((1 - item.confidenceScore) * 100 * 0.7).round();
-    final thirdPct = 100 - topPct - secondPct;
+    // Use stored percentages if available, otherwise calculate fallback
+    Map<String, int> sizePercentages;
     
-    // Get next size for percentage display
-    final sizeOrder = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL"];
-    String secondSize = "?";
-    String thirdSize = "?";
-    
-    final upperSize = item.recommendedSize.toUpperCase();
-    final currentIndex = sizeOrder.indexOf(upperSize);
-    
-    if (currentIndex >= 0) {
-      if (currentIndex < sizeOrder.length - 1) {
-        secondSize = sizeOrder[currentIndex + 1];
-      }
-      if (currentIndex > 0) {
-        thirdSize = sizeOrder[currentIndex - 1];
-      }
+    if (item.sizePercentages.isNotEmpty) {
+      // Use stored percentages directly - SYNC FIX!
+      sizePercentages = item.sizePercentages;
     } else {
-      final numSize = int.tryParse(item.recommendedSize);
-      if (numSize != null) {
-        secondSize = (numSize + 1).toString();
-        thirdSize = (numSize - 1).toString();
+      // Fallback for old data without stored percentages
+      final topPct = (item.confidenceScore * 100).round();
+      final secondPct = ((1 - item.confidenceScore) * 100 * 0.7).round();
+      final thirdPct = 100 - topPct - secondPct;
+      
+      final sizeOrder = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL"];
+      String secondSize = "?";
+      String thirdSize = "?";
+      
+      final upperSize = item.recommendedSize.toUpperCase();
+      final currentIndex = sizeOrder.indexOf(upperSize);
+      
+      if (currentIndex >= 0) {
+        if (currentIndex < sizeOrder.length - 1) {
+          secondSize = sizeOrder[currentIndex + 1];
+        }
+        if (currentIndex > 0) {
+          thirdSize = sizeOrder[currentIndex - 1];
+        }
+      } else {
+        final numSize = int.tryParse(item.recommendedSize);
+        if (numSize != null) {
+          secondSize = (numSize + 1).toString();
+          thirdSize = (numSize - 1).toString();
+        }
       }
+      
+      sizePercentages = {
+        item.recommendedSize: topPct,
+        secondSize: secondPct,
+        thirdSize: thirdPct > 0 ? thirdPct : 1,
+      };
     }
     
-    final Map<String, int> sizePercentages = {
-      item.recommendedSize: topPct,
-      secondSize: secondPct,
-      thirdSize: thirdPct > 0 ? thirdPct : 1,
-    };
+    // Get top percentage for fit message
+    final topPct = sizePercentages[item.recommendedSize] ?? 
+                   (item.confidenceScore * 100).round();
     
     final result = RecommendationResult(
       productName: item.productName,
